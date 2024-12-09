@@ -2,6 +2,7 @@
 const ctx = {
     MAP_W: 1024,
     MAP_H: 1024,
+    SANKEY_W: 700, SANKEY_H: 700,
     ATTRIB: '<a href="https://linkedin.com/in/ardianugraha">Nugraha</a> & <a href="https://linkedin.com/in/matin-zivdar">Zivdar</a> (<a href="https://www.enseignement.polytechnique.fr/informatique/CSC_51052/">CSC_51052_EP</a>) | Map &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, Data &copy; <a href="https://data.enedis.fr">Enedis</a> & <a href="https://odre.opendatasoft.com/">ODRE</a>',
     LFmap: null
 };
@@ -15,11 +16,16 @@ function createViz() {
 };
 
 function loadData() {
+    // Define a custom parser for semicolon-delimited CSV files
+    const semicolonCSV = d3.dsvFormat(";");
+
     const promise_files = [
         d3.json("datasets/prod-region-annuelle-filiere.geojson"),
         d3.json("datasets/production-electrique-par-filiere-a-la-maille-departement.geojson"),
         d3.csv("datasets/registre-national-installation-production-stockage-electricite grouped.csv"),
-        d3.json("datasets/communes_france.json")
+        d3.json("datasets/communes_france.json"),
+        d3.text("datasets/prod-region-annuelle-filiere.csv").then(text => semicolonCSV.parse(text)),
+        d3.text("datasets/part-regionale-consommation-nationale-couverte-par-filiere.csv").then(text => semicolonCSV.parse(text)),
     ];
 
     Promise.all(promise_files).then(function (data) {
@@ -27,6 +33,8 @@ function loadData() {
         const prod_dept = data[1];
         const sites = data[2];
         const communes = data[3];
+        const regionProduction = data[4];
+        const regionConsumption = data[5];
 
         // console.log(sites);
         // console.log(prod_region);
@@ -93,8 +101,40 @@ function loadData() {
         console.log(ctx.sitesMap);
 
         drawMap();
-        
-    }).catch(function (error) { console.log(error) });
+
+        const regionProductionData = regionProduction.map(d => ({
+            year: +d["Année"],
+            regionCode: d["Code INSEE région"],
+            regionName: d["Région"],
+            nuclear: d["Production nucléaire (GWh)"],
+            thermique: d["Production thermique (GWh)"],
+            hydraulique: d["Production hydraulique (GWh)"],
+            eolienne: d["Production éolienne (GWh)"],
+            solaire: d["Production solaire (GWh)"],
+            bioenergies: d["Production bioénergies (GWh)"],
+            regionGeoShape: d["Géo-shape région"],
+            regionGeoPoint: d["Géo-point région"],
+        }));
+        // console.log("Processed regional production data:", regionProductionData);
+
+        // Process national consumption data
+        const regionalConsumptionData = regionConsumption.map(d => ({
+            year: +d["Année"],
+            regionCode: d["Code INSEE région"],
+            regionName: d["Région"],
+            energyType: d["Filière"],
+            nationalConsumptionPercentage: parseFloat(d["Part de la consommation nationale couverte (%)"]),
+            geoShape: JSON.parse(d["Géo-shape de la région"]),
+            geoPoint: d["Géo-point de la région"].split(',').map(Number)
+        }));
+        // console.log("Processed national installation data:", installationData);
+
+        // Call visualization functions
+        // For example: drawMap(svgEl, regionalData);
+        drawSankey(regionProductionData, regionalConsumptionData);
+    }).catch(function (error) {
+        console.error("Error loading data:", error);
+    });
 };
 
 function drawMap() {
@@ -242,8 +282,164 @@ function plotSites() {
     siteSelection.exit().remove();
 };
 
-function drawSankey() {
+function drawSankey(regionProductionData, regionalConsumptionData) {
+    // TODO: Implement Sankey diagram drawing
+    console.log("Drawing Sankey diagram");
+    // Prepare data for Sankey diagram
+    const sankey = d3.sankey()
+        .nodeWidth(15)
+        .nodePadding(10)
+        .size([ctx.SANKEY_W, ctx.SANKEY_H]);
 
+    // Collect unique regions, energy types, and links
+    const regions = new Set();
+    const energyTypes = new Set(["nuclear", "thermique", "hydraulique", "eolienne", "solaire", "bioenergie"]);
+    const links = [];
+
+    // Process production data to create first set of links
+    const productionByRegionAndType = {};
+
+    regionProductionData.forEach(prod => {
+        if (prod.year === 2020) {
+            regions.add("production-" + prod.regionName);
+
+            energyTypes.forEach(field => {
+                value = parseFloat(prod[field]);
+                // Create links from production regions to energy types
+                if (value > 0) {
+                    links.push({
+                        source: "production-" + prod.regionName,
+                        target: field,
+                        value: value
+                    });
+                }
+            });
+        }
+    });
+
+    // Normalize energy type
+    const energyTypesMap = {
+        'nucléaire': 'nuclear',
+        'thermique fossile': 'thermique',
+        'hydraulique': 'hydraulique',
+        'éolien': 'eolienne',
+        'solaire': 'solaire',
+        'bioénergies': 'bioenergie'
+    };
+
+    // TODO: Fix consumption!
+    // TODO: Add a year selection field
+    // Process consumption data to create links from energy types to consumption regions
+    regionalConsumptionData.forEach(cons => {
+        if (cons.year === 2020) {
+
+            const normalizedEnergyType = energyTypesMap[cons.energyType];
+
+            // Only add if the energy type exists in our production data
+            if (energyTypes.has(normalizedEnergyType)) {
+                regions.add("consumption-" + cons.regionName);
+                
+                const consumptionValue = parseFloat(cons.nationalConsumptionPercentage);
+                
+                if (consumptionValue > 0) {
+                    links.push({
+                        source: normalizedEnergyType,
+                        target: "consumption-" + cons.regionName,
+                        value: consumptionValue
+                    });
+                }
+            }
+        }
+    });
+
+    // Combine and sort unique nodes
+    const allNodes = Array.from(new Set([...regions, ...energyTypes]));
+
+    // Create node index map
+    const nodeIndices = new Map(allNodes.map((node, i) => [node, i]));
+
+    // Prepare Sankey links with node indices
+    const sanKeyLinks = links.map(link => ({
+        source: nodeIndices.get(link.source),
+        target: nodeIndices.get(link.target),
+        value: link.value
+    })).filter(link => 
+        link.source !== undefined && 
+        link.target !== undefined && 
+        link.value > 0
+    );
+
+    // Create Sankey graph
+    const graph = sankey({
+        nodes: allNodes.map(d => ({ name: d })),
+        links: sanKeyLinks
+    });
+
+    console.log(graph)
+
+    // Remove any existing SVG first
+    d3.select("#sankeyContainer").selectAll("*").remove();
+
+    // Create SVG dynamically
+    const svg = d3.select("#sankeyContainer")
+        .append("svg")
+        .attr("width", ctx.SANKEY_W)
+        .attr("height", ctx.SANKEY_H);
+
+    // Color scale for nodes
+    const color = d3.scaleOrdinal(d3.schemeCategory10);
+
+    // TODO:
+    // Add margin
+
+    // Append links
+    svg.append("g")
+        .attr("class", "links")
+        .selectAll("path")
+        .data(graph.links)
+        .enter().append("path")
+        .attr("d", d3.sankeyLinkHorizontal())
+        .attr("fill", "none")
+        .attr("stroke", "black")
+        .attr("stroke", function (d) {
+            // TODO:
+            // return extractRegion(graph.nodes[d.source.index]['name']);
+            return 'black';
+        })
+        .attr("stroke-opacity", 0.5)
+        .attr("stroke-width", d => Math.max(1, d.width));
+
+    // Append nodes
+    const node = svg.append("g")
+        .attr("class", "nodes")
+        .selectAll("rect")
+        .data(graph.nodes)
+        .enter().append("rect")
+        .attr("x", d => d.x0)
+        .attr("y", d => d.y0)
+        .attr("height", d => d.y1 - d.y0)
+        .attr("width", d => d.x1 - d.x0)
+        .attr("fill", d => color(d.name))
+        .attr("opacity", 0.8);
+
+    // Add node labels
+    svg.append("g")
+        .attr("class", "node-labels")
+        .selectAll("text")
+        .data(graph.nodes)
+        .enter().append("text")
+        .attr("x", d => (d.x0 + d.x1) / 2)
+        .attr("y", d => (d.y0 + d.y1) / 2)
+        .attr("dy", "1.35em")
+        .attr("text-anchor", "middle")
+        .text(d => extractRegion(d.name))
+        .attr("font-size", "10px")
+        .attr("fill", "black");
+
+    // Logging for debugging
+    // console.log("Nodes:", allNodes);
+    // console.log("Links:", links);
+    // console.log("Sankey Links:", sanKeyLinks);
 };
 
 function drawRegression() {

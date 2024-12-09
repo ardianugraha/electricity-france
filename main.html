@@ -6,6 +6,7 @@
     <title>France Electricity Production & Consumption</title>
     <!-- https://d3js.org/ -->
     <script type="text/javascript" src="js/d3.v7.min.js"></script>
+    <script src="js/d3-sankey.min.js"></script>
     <!-- Your code -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
@@ -29,10 +30,10 @@
 <body onload="createViz()">
 
     <div class="flex-container">
-        <div id="mapContainer">
-        </div>
+        <div id="mapContainer"></div>
         <!-- add div(s) here for each figure -->
-      </div>
+        <div id="sankeyContainer"></div>
+    </div>
 </body>
 
 </html>
