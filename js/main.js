@@ -1,3 +1,4 @@
+// Define context with map dimensions and a year filter
 const ctx = {
     MAP_W: 1024,
     MAP_H: 1024,
@@ -5,6 +6,7 @@ const ctx = {
     LFmap: null
 };
 
+// Initialize the visualization
 function createViz() {
     console.log("Using D3 v" + d3.version);
     loadData();
