@@ -7,39 +7,21 @@
     <!-- https://d3js.org/ -->
     <script type="text/javascript" src="js/d3.v7.min.js"></script>
     <!-- Your code -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://unpkg.com/esri-leaflet@3.0.10/dist/esri-leaflet.js"></script>
     <script type="text/javascript" src="js/main.js"></script>
     <script type="text/javascript" src="js/utils.js"></script>
     <style type="text/css">
-        .countryArea {
-            fill: rgb(232, 232, 232);
-        }
-    
-        .countryArea:hover {
-            fill: rgb(200, 200, 200);
-        }
-    
-        .nutsArea {
-            fill: darkgray;
-        }
-    
-        .nutsArea:hover {
-            opacity: 0.7;
-        }
-    
-        .countryBorder {
-            fill: none;
-            stroke-width: 1px;
-            stroke: rgb(70, 70, 70);
-        }
-    
-        .nutsBorder {
-            fill: none;
-            stroke-width: 1px;
-            stroke: rgb(140, 140, 140);
-        }    
-
         .flex-container {
             display: flex;
+        }
+        .leaflet-container {
+            height: 720px;
+            width: 720px;
+        }        
+        .leaflet-container.crosshair-cursor-enabled {
+            cursor: crosshair;
         }
     </style>
 </head>
