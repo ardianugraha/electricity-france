@@ -16,6 +16,11 @@
     <style type="text/css">
         .flex-container {
             display: flex;
+            justify-content: space-around;
+        }
+        .flex-map {
+            display: flex;
+            flex-direction: column;
         }
         .leaflet-container {
             height: 40rem;
@@ -30,7 +35,10 @@
 <body onload="createViz()">
 
     <div class="flex-container">
-        <div id="mapContainer"></div>
+        <div class="flex-map">
+            <div id="mapContainer"></div>
+            <div id="mapFilter"></div>
+        </div>
         <!-- add div(s) here for each figure -->
         <div id="sankeyContainer"></div>
     </div>
