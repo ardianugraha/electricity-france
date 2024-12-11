@@ -1,7 +1,7 @@
 // Define context with map dimensions and a year filter
 const ctx = {
-    MAP_W: 1024,
-    MAP_H: 1024,
+    // MAP_W: 1024,
+    // MAP_H: 1024,
     SANKEY_W: 700, SANKEY_H: 700,
     ATTRIB: '<a href="https://linkedin.com/in/ardianugraha">Nugraha</a> & <a href="https://linkedin.com/in/matin-zivdar">Zivdar</a> (<a href="https://www.enseignement.polytechnique.fr/informatique/CSC_51052/">CSC_51052_EP</a>) | Map &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, Data &copy; <a href="https://data.enedis.fr">Enedis</a> & <a href="https://odre.opendatasoft.com/">ODRE</a>',
     LFmap: null
@@ -24,7 +24,6 @@ function loadData() {
         d3.json("datasets/production-electrique-par-filiere-a-la-maille-departement.geojson"),
         d3.csv("datasets/registre-national-installation-production-stockage-electricite grouped.csv"),
         d3.json("datasets/communes_france.json"),
-        d3.text("datasets/prod-region-annuelle-filiere.csv").then(text => semicolonCSV.parse(text)),
         d3.text("datasets/part-regionale-consommation-nationale-couverte-par-filiere.csv").then(text => semicolonCSV.parse(text)),
     ];
 
@@ -33,8 +32,7 @@ function loadData() {
         const prod_dept = data[1];
         const sites = data[2];
         const communes = data[3];
-        const regionProduction = data[4];
-        const regionConsumption = data[5];
+        const regionConsumption = data[4];
 
         // console.log(sites);
         // console.log(prod_region);
@@ -43,6 +41,7 @@ function loadData() {
 
         /* Prepare map data of regions */
         ctx.mapRegions = {"type": "FeatureCollection", "features": []};
+        ctx.prodDataRegions = {}
         prod_region.features.forEach(feature => {
             let region_code = feature.properties.code_insee_region
             let exists = ctx.mapRegions.features.some(i => i.properties.region_code == region_code);
@@ -58,6 +57,18 @@ function loadData() {
             };
         });
         // console.log(ctx.mapRegions);
+        regionProductionData = prod_region.features.map(feature => ({
+            year: +feature.properties.annee,
+            regionCode: feature.properties.code_insee_region,
+            regionName: feature.properties.region,
+            nuclear: feature.properties.production_nucleaire,
+            thermique: feature.properties.production_thermique,
+            hydraulique: feature.properties.production_hydraulique,
+            eolienne: feature.properties.production_eolienne,
+            solaire: feature.properties.production_solaire,
+            bioenergies: feature.properties.bioenergies,
+        }));
+        // console.log(ctx.regionProductionData);
 
         ctx.mapDepts = {features: []};
         prod_dept.features.filter(feature => feature.geometry != null).forEach(feature => {
@@ -98,24 +109,9 @@ function loadData() {
             row.sum_max_power_installed >= 1000 // filter sum_max_power_installed < 1000 kW
         );
 
-        console.log(ctx.sitesMap);
+        // console.log(ctx.sitesMap);
 
         drawMap();
-
-        const regionProductionData = regionProduction.map(d => ({
-            year: +d["Année"],
-            regionCode: d["Code INSEE région"],
-            regionName: d["Région"],
-            nuclear: d["Production nucléaire (GWh)"],
-            thermique: d["Production thermique (GWh)"],
-            hydraulique: d["Production hydraulique (GWh)"],
-            eolienne: d["Production éolienne (GWh)"],
-            solaire: d["Production solaire (GWh)"],
-            bioenergies: d["Production bioénergies (GWh)"],
-            regionGeoShape: d["Géo-shape région"],
-            regionGeoPoint: d["Géo-point région"],
-        }));
-        // console.log("Processed regional production data:", regionProductionData);
 
         // Process national consumption data
         const regionalConsumptionData = regionConsumption.map(d => ({
@@ -196,6 +192,8 @@ function style(feature) {
 
 function zoomToFeature(e) {
     const layer = e.target;
+    ctx.selectedRegionCode = e.target.feature.properties.region_code;
+    // console.log(ctx.selectedRegionCode);
     ctx.LFmap.fitBounds(layer.getBounds());
 };
 
@@ -210,7 +208,6 @@ function highlightFeature(e) {
         fillOpacity: 0.3
     });
     layer.bringToFront();
-
 };
 
 function resetHighlight(e) {
