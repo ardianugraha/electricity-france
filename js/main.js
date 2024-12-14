@@ -6,14 +6,16 @@ const ctx = {
     ATTRIB: '<a href="https://linkedin.com/in/ardianugraha">Nugraha</a> & <a href="https://linkedin.com/in/matin-zivdar">Zivdar</a> (<a href="https://www.enseignement.polytechnique.fr/informatique/CSC_51052/">CSC_51052_EP</a>) | Map &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, Data &copy; <a href="https://data.enedis.fr">Enedis</a> & <a href="https://odre.opendatasoft.com/">ODRE</a>',
     LFmap: null,
     energyType: [
-        'Bioénergies', 
-        'Eolien', 
-        'Solaire', 
-        'Hydraulique', 
-        'Nucléaire', 
-        'Thermique non renouvelable', 
-        'Energies Marines', 
-        'Géothermie'
+        'Nuclear',
+        'Hydro', 
+        'Wind', 
+        'Solar', 
+        'Bioenergy', 
+        'Marine Energy', 
+        'Geothermal',
+        'Non-renewable',
+        'Storage',
+        'Other'
     ],
     currentFilters: {
         energyType: [],
@@ -212,13 +214,13 @@ function resetHighlight(e) {
 function plotSites() {
     const groupedSites = groupSitesByCommune(ctx.sitesMap);
     const colorMapping = {
-        "Bioénergies": "#6B3F2A",   // Dark brown
-        "Energie Marines": "#003366", // Dark blue
-        "Eolien": "#87CEEB",         // Sky blue
-        "Géothermie": "#FFA500",     // Orange
-        "Hydraulique": "#4682B4",    // Steel blue
-        "Nucléaire": "#D32F2F",      // Red
-        "Solaire": "#e8c33c"         // Yellow
+        "Bioenergy": "#6B3F2A",   // Dark brown
+        "Marine Energy": "#003366", // Dark blue
+        "Wind": "#87CEEB",         // Sky blue
+        "Geothermal": "#FFA500",     // Orange
+        "Hydro": "#4682B4",    // Steel blue
+        "Nuclear": "#D32F2F",      // Red
+        "Solar": "#e8c33c"         // Yellow
     };
     let maxPowerExt = d3.extent(ctx.sitesMap, d => d.sum_max_power_installed);
     ctx.rScale = d3.scalePow()
