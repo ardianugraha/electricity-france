@@ -4,7 +4,21 @@ const ctx = {
     // MAP_H: 1024,
     SANKEY_W: 700, SANKEY_H: 700,
     ATTRIB: '<a href="https://linkedin.com/in/ardianugraha">Nugraha</a> & <a href="https://linkedin.com/in/matin-zivdar">Zivdar</a> (<a href="https://www.enseignement.polytechnique.fr/informatique/CSC_51052/">CSC_51052_EP</a>) | Map &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, Data &copy; <a href="https://data.enedis.fr">Enedis</a> & <a href="https://odre.opendatasoft.com/">ODRE</a>',
-    LFmap: null
+    LFmap: null,
+    energyType: [
+        'Bioénergies', 
+        'Eolien', 
+        'Solaire', 
+        'Hydraulique', 
+        'Nucléaire', 
+        'Thermique non renouvelable', 
+        'Energies Marines', 
+        'Géothermie'
+    ],
+    currentFilters: {
+        energyType: [],
+        region: []
+    }
 };
 
 // Initialize the visualization
@@ -26,6 +40,9 @@ function loadData() {
         d3.json("datasets/communes_france.json"),
         d3.text("datasets/part-regionale-consommation-nationale-couverte-par-filiere.csv").then(text => semicolonCSV.parse(text)),
     ];
+
+    const energyTypeContainer = document.querySelector("#energy-type");
+    const regionContainer = document.querySelector("#region");
 
     Promise.all(promise_files).then(function (data) {
         const prod_region = data[0];
@@ -56,7 +73,7 @@ function loadData() {
                 })
             };
         });
-        // console.log(ctx.mapRegions);
+        
         regionProductionData = prod_region.features.map(feature => ({
             year: +feature.properties.annee,
             regionCode: feature.properties.code_insee_region,
@@ -69,25 +86,6 @@ function loadData() {
             bioenergies: feature.properties.bioenergies,
         }));
         // console.log(ctx.regionProductionData);
-
-        ctx.mapDepts = {features: []};
-        prod_dept.features.filter(feature => feature.geometry != null).forEach(feature => {
-            let dept_code = feature.properties.code_departement
-            let exists = ctx.mapDepts.features.some(i => i.properties.dept_code == dept_code);
-            if(!exists) {
-                ctx.mapDepts.features.push({
-                    "type": "Feature",
-                    "geometry": feature.geometry,
-                    "properties": {
-                        "dept_code": dept_code,
-                        "region_code": feature.properties.code_region,
-                        "dept_name": feature.properties.nom_departement,
-                        "region_name": feature.properties.nom_region
-                    }
-                })
-            }
-        });
-        // console.log(ctx.mapDepts);
 
         /* Prepare generator sites data with long lat */
         const lookup = new Map(communes.map(row => [row.code, { long: row.centre.coordinates[0], lat: row.centre.coordinates[1] }]));
@@ -105,11 +103,11 @@ function loadData() {
         })
         .filter(row => 
             row !== null && 
-            !['Autre', 'Stockage non hydraulique', 'Thermique non renouvelable'].includes(row.energy_type) &&
+            !['Autre', 'Stockage non hydraulique'].includes(row.energy_type) &&
             row.sum_max_power_installed >= 1000 // filter sum_max_power_installed < 1000 kW
         );
 
-        // console.log(ctx.sitesMap);
+        ctx.energyType.forEach(type => createFilter("energyType", type, energyTypeContainer));
 
         drawMap();
 
@@ -260,6 +258,7 @@ function plotSites() {
         .attr("cx", d => ctx.LFmap.latLngToLayerPoint([d.lat, d.long]).x)
         .attr("cy", d => ctx.LFmap.latLngToLayerPoint([d.lat, d.long]).y)
         .attr("r", d => ctx.rScale(d.sum_max_power_installed))
+        .attr("class", d => d.energy_type.replace(/\s+/g, '-')) // Class based on energy_type
         .style("fill", d => colorMapping[d.energy_type])
         .style("opacity", 0.7)
         .style("pointer-events", "auto") 

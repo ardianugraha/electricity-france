@@ -14,20 +14,82 @@
     <script type="text/javascript" src="js/main.js"></script>
     <script type="text/javascript" src="js/utils.js"></script>
     <style type="text/css">
+        body {
+            font: normal 16px/26px system-ui, Roboto, Arial, sans-serif;
+        }
+
         .flex-container {
             display: flex;
             justify-content: space-around;
         }
+
         .flex-map {
             display: flex;
             flex-direction: column;
         }
+
+        #mapFilterContainer {
+            display: flex;
+            flex-direction: column; /* Stack the filter buttons vertically */
+            gap: 10px; /* Space between title and filter buttons */
+        }
+
+        #mapContainer {
+            display: flex;
+            justify-content: center; /* Center the map horizontally */
+            align-items: center; /* Center the map vertically if needed */
+            height: 50rem;
+        }
+
         .leaflet-container {
-            height: 40rem;
-            width: 40rem;
+            display: flex;
+            height: 50rem;
+            width: 50rem;
         }        
+
         .leaflet-container.crosshair-cursor-enabled {
             cursor: crosshair;
+        }
+
+        .container__title {
+            font-weight: 700;
+            font-size: 14px;
+            color: #8fa6b3;
+        }
+
+        .filter-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            gap: 10px;
+            padding: 16px 0 32px;
+            border-bottom: 1px solid #e4e4e4;
+            margin-bottom: 16px;
+        }
+
+        .filter-button {
+            transition: background-color 200ms, color 200ms;
+            background-color: transparent;
+            font: inherit;
+            cursor: pointer;
+            display: inline-block;
+            padding: 0 8px;
+            color: #717171;
+            border: 1px solid #9b9b9b;
+            border-radius: 25px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        .filter-button:hover {
+            background-color: #f3f3f3;
+            color: #3a3a3a;
+        }
+
+        .filter-button.is-active {
+            background-color: #0085b6;
+            border-color: #0085b6;
+            color: #fff;
         }
     </style>
 </head>
@@ -36,8 +98,13 @@
 
     <div class="flex-container">
         <div class="flex-map">
+            <div id="mapFilterContainer">
+                <div class="container__title">Energy Type</div>
+                <div id="energy-type" class="filter-container"></div>
+                <div class="container__title" >Region</div>
+                <div id="region" class="filter-container"></div>
+            </div>
             <div id="mapContainer"></div>
-            <div id="mapFilter"></div>
         </div>
         <!-- add div(s) here for each figure -->
         <div id="sankeyContainer"></div>
