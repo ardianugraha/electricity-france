@@ -37,7 +37,6 @@ function loadData() {
         d3.json("datasets/prod-region-annuelle-filiere.geojson"),
         d3.json("datasets/production-electrique-par-filiere-a-la-maille-departement.geojson"),
         d3.csv("datasets/registre-national-installation-production-stockage-electricite grouped.csv"),
-        d3.json("datasets/communes_france.json"),
         d3.text("datasets/part-regionale-consommation-nationale-couverte-par-filiere.csv").then(text => semicolonCSV.parse(text)),
     ];
 
@@ -48,13 +47,11 @@ function loadData() {
         const prod_region = data[0];
         const prod_dept = data[1];
         const sites = data[2];
-        const communes = data[3];
-        const regionConsumption = data[4];
+        const regionConsumption = data[3];
 
-        // console.log(sites);
+        console.log(sites);
         // console.log(prod_region);
         // console.log(prod_dept);
-        // console.log(communes);
 
         /* Prepare map data of regions */
         ctx.mapRegions = {"type": "FeatureCollection", "features": []};
@@ -88,24 +85,15 @@ function loadData() {
         // console.log(ctx.regionProductionData);
 
         /* Prepare generator sites data with long lat */
-        const lookup = new Map(communes.map(row => [row.code, { long: row.centre.coordinates[0], lat: row.centre.coordinates[1] }]));
-        ctx.sitesMap = sites.map(row => {
-            const coordinates = lookup.get(row.codeINSEECommune);
-            return coordinates 
-                ? { code: row.codeINSEECommune,
-                    commune: row.commune,
-                    energy_type: row.filiere,
-                    sum_max_power_installed: parseFloat(row.sum_puisMaxInstallee),
-                    sum_nb_installation: row.sum_nbInstallations,
-                    long: coordinates.long, 
-                    lat: coordinates.lat }
-                : null;
-        })
-        .filter(row => 
-            row !== null && 
-            !['Autre', 'Stockage non hydraulique'].includes(row.energy_type) &&
-            row.sum_max_power_installed >= 1000 // filter sum_max_power_installed < 1000 kW
-        );
+        ctx.sitesMap = sites.map(row => ({
+                            code: row.codeINSEECommune,
+                            commune: row.commune,
+                            energy_type: row.filiere,
+                            sum_max_power_installed: +row.sum_puisMaxInstallee,
+                            sum_nb_installation: +row.sum_nbInstallations,
+                            long: row.long, 
+                            lat: row.lat 
+                        }));
 
         ctx.energyType.forEach(type => createFilter("energyType", type, energyTypeContainer));
 
@@ -220,16 +208,6 @@ function resetHighlight(e) {
     });
     layer.bringToBack();
 };
-
-// let isMouseOverSite = false;
-
-// function onSiteMouseOver() {
-//     isMouseOverSite = true;
-// }
-
-// function onSiteMouseOut() {
-//     isMouseOverSite = false;
-// }
 
 function plotSites() {
     const groupedSites = groupSitesByCommune(ctx.sitesMap);
@@ -446,4 +424,21 @@ function drawRegression() {
 
 function drawCapDistribution() {
 
+};
+
+function createTreeMap(data) {
+    let root = d3.stratify()
+                .id(d => d.Code)
+                .parentId(d => {
+                    if (d.Code === "COFOG") return null;
+                    if (d.Code.length > 4) return d.Code.slice(0, -2) || "COFOG";
+                    return "COFOG";
+                })           
+                (data);
+
+    let treemap = d3.treemap()
+                    .tile(d3.treemapBinary)
+                    // .size([ctx.TM_WIDTH, ctx.TM_HEIGHT])
+                    .paddingInner(3)
+                    .paddingOuter(5);
 };
