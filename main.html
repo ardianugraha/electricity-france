@@ -18,27 +18,66 @@
             font: normal 16px/26px system-ui, Roboto, Arial, sans-serif;
         }
 
-        .flex-container {
-            display: flex;
-            justify-content: space-around;
-        }
-
-        .flex-map {
+        .container {
             display: flex;
             flex-direction: column;
+            justify-content: space-around;
+            height: 100vh; /* Full viewport height */
         }
 
-        #mapFilterContainer {
+        .main-container {
             display: flex;
-            flex-direction: column; /* Stack the filter buttons vertically */
-            gap: 10px; /* Space between title and filter buttons */
+            flex-direction: row;
+            justify-content: space-around;
+            margin-left: 10px;
+            margin-right: 10px;
+        }
+
+        .header {
+            background-color: lightblue;
+            padding: 10px;
+            text-align: left;
+            font: inherit;
+            font-size: large;
+        }
+
+        .main {
+            flex: 1; /* This makes the main section take up the remaining space */
+            background-color: lightgray;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .footer {
+            background-color: lightcoral;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .row {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Optional: space between items */
+        }
+
+        .item {
+            /* background-color: lightgreen; */
+            padding: 10px;
+            /* flex: 1; Each item will take equal space */
+            margin: 5px; /* Optional: space between items */
+            text-align: left;
+        }
+
+        .map-filter-container {
+            display: flex;
+            flex-direction: column;
         }
 
         #mapContainer {
             display: flex;
             justify-content: center; /* Center the map horizontally */
             align-items: center; /* Center the map vertically if needed */
-            height: 50rem;
+            height: 45rem;
         }
 
         .leaflet-container {
@@ -61,10 +100,10 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: flex-start;
-            gap: 10px;
-            padding: 16px 0 32px;
+            gap: 5px;
+            padding: 5px 0 5px;
             border-bottom: 1px solid #e4e4e4;
-            margin-bottom: 16px;
+            margin-bottom: 5px;
         }
 
         .filter-button {
@@ -73,11 +112,11 @@
             font: inherit;
             cursor: pointer;
             display: inline-block;
-            padding: 0 8px;
+            padding: 0 2px;
             color: #717171;
             border: 1px solid #9b9b9b;
-            border-radius: 25px;
-            font-size: 14px;
+            border-radius: 20px;
+            font-size: 10px;
             white-space: nowrap;
         }
 
@@ -112,19 +151,25 @@
 
 <body onload="createViz()">
 
-    <div class="flex-container">
-        <div class="flex-map">
-            <div id="tooltip"></div>
-            <div id="mapFilterContainer">
-                <div class="container__title">Energy Type</div>
-                <div id="energy-type" class="filter-container"></div>
-                <div class="container__title" >Region</div>
-                <div id="region" class="filter-container"></div>
+    <div class="container">
+        <header>France Renewable Energy</header>
+        <main class="main-container">
+            <div class="row">
+                <div id="map-filter-container">
+                    <div class="container__title">Energy Type</div>
+                    <div id="energy-type" class="filter-container"></div>
+                    <!-- <div class="container__title" >Region</div> -->
+                    <!-- <div id="region" class="filter-container"></div> -->
+                </div>
+                <div id="mapContainer"></div>
+                <div id="tooltip"></div>
             </div>
-            <div id="mapContainer"></div>
-        </div>
-        <!-- add div(s) here for each figure -->
-        <div id="sankeyContainer"></div>
+            <!-- add div(s) here for each figure -->
+            <div class="row">
+                <div id="sankeyContainer" class="item"></div>
+            </div>
+        </main>
+        <footer></footer>
     </div>
 </body>
 

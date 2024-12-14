@@ -221,19 +221,18 @@ function resetHighlight(e) {
     layer.bringToBack();
 };
 
-let isMouseOverSite = false;
+// let isMouseOverSite = false;
 
-function onSiteMouseOver() {
-    isMouseOverSite = true;
-}
+// function onSiteMouseOver() {
+//     isMouseOverSite = true;
+// }
 
-function onSiteMouseOut() {
-    isMouseOverSite = false;
-}
+// function onSiteMouseOut() {
+//     isMouseOverSite = false;
+// }
 
 function plotSites() {
     const groupedSites = groupSitesByCommune(ctx.sitesMap);
-    console.log(groupedSites);
     const colorMapping = {
         "Bioénergies": "#6B3F2A",   // Dark brown
         "Energie Marines": "#003366", // Dark blue
@@ -241,12 +240,12 @@ function plotSites() {
         "Géothermie": "#FFA500",     // Orange
         "Hydraulique": "#4682B4",    // Steel blue
         "Nucléaire": "#D32F2F",      // Red
-        "Solaire": "#FFD700"         // Yellow
+        "Solaire": "#e8c33c"         // Yellow
     };
     let maxPowerExt = d3.extent(ctx.sitesMap, d => d.sum_max_power_installed);
-    ctx.rScale = d3.scaleLog()
+    ctx.rScale = d3.scalePow()
         .domain(maxPowerExt)
-        .range([1, 12]);
+        .range([2, 15]);
     let siteSelection = d3.select("g#sites")
         .selectAll("circle")
         .data(ctx.sitesMap);
