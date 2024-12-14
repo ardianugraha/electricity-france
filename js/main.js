@@ -17,6 +17,18 @@ const ctx = {
         'Storage',
         'Other'
     ],
+    colorMapping: {
+        "Bioenergy": "#6B3F2A",   // Dark brown
+        "Marine Energy": "#003366", // Dark blue
+        "Wind": "#87CEEB",         // Sky blue
+        "Geothermal": "#FFA500",     // Orange
+        "Hydro": "#4682B4",    // Steel blue
+        "Nuclear": "#D32F2F",      // Red
+        "Solar": "#e8c33c",         // Yellow
+        "Non-renewable": "black",
+        "Storage": "silver",
+        "Other": "darkgray",
+    },
     currentFilters: {
         energyType: [],
         region: []
@@ -51,7 +63,7 @@ function loadData() {
         const sites = data[2];
         const regionConsumption = data[3];
 
-        console.log(sites);
+        // console.log(sites);
         // console.log(prod_region);
         // console.log(prod_dept);
 
@@ -116,6 +128,8 @@ function loadData() {
         // Call visualization functions
         // For example: drawMap(svgEl, regionalData);
         drawSankey(regionProductionData, regionalConsumptionData);
+
+        createTreeMap(ctx.sitesMap, ctx.currentFilters);
     }).catch(function (error) {
         console.error("Error loading data:", error);
     });
@@ -213,15 +227,7 @@ function resetHighlight(e) {
 
 function plotSites() {
     const groupedSites = groupSitesByCommune(ctx.sitesMap);
-    const colorMapping = {
-        "Bioenergy": "#6B3F2A",   // Dark brown
-        "Marine Energy": "#003366", // Dark blue
-        "Wind": "#87CEEB",         // Sky blue
-        "Geothermal": "#FFA500",     // Orange
-        "Hydro": "#4682B4",    // Steel blue
-        "Nuclear": "#D32F2F",      // Red
-        "Solar": "#e8c33c"         // Yellow
-    };
+
     let maxPowerExt = d3.extent(ctx.sitesMap, d => d.sum_max_power_installed);
     ctx.rScale = d3.scalePow()
         .domain(maxPowerExt)
@@ -237,7 +243,7 @@ function plotSites() {
         .attr("cy", d => ctx.LFmap.latLngToLayerPoint([d.lat, d.long]).y)
         .attr("r", d => ctx.rScale(d.sum_max_power_installed))
         .attr("class", d => d.energy_type.replace(/\s+/g, '-')) // Class based on energy_type
-        .style("fill", d => colorMapping[d.energy_type])
+        .style("fill", d => ctx.colorMapping[d.energy_type])
         .style("opacity", 0.7)
         .style("pointer-events", "auto") 
         .on("mouseover", function(event, d) {
@@ -428,19 +434,82 @@ function drawCapDistribution() {
 
 };
 
-function createTreeMap(data) {
-    let root = d3.stratify()
-                .id(d => d.Code)
-                .parentId(d => {
-                    if (d.Code === "COFOG") return null;
-                    if (d.Code.length > 4) return d.Code.slice(0, -2) || "COFOG";
-                    return "COFOG";
-                })           
-                (data);
+function createTreeMap(data, selectedEnergyType) {
+    // Filter data based on the selected energy type
+    console.log(data);
+    const filteredData = data;
+    // data.filter(d => d.energy_type === selectedEnergyType);
+    const groupedData = d3.group(filteredData, d => d.energy_type);
 
-    let treemap = d3.treemap()
-                    .tile(d3.treemapBinary)
-                    // .size([ctx.TM_WIDTH, ctx.TM_HEIGHT])
-                    .paddingInner(3)
-                    .paddingOuter(5);
-};
+    // Compute the total max power installed for the selected energy type
+    const totalMaxPower = d3.sum(filteredData, d => d.sum_max_power_installed);
+    console.log(totalMaxPower);
+    // Transform data into hierarchical format for treemap
+    const hierarchyData = {
+        name: "root",
+        children: Array.from(groupedData, ([key, values]) => {
+          const totalPower = d3.sum(values, d => d.sum_max_power_installed);
+          return {
+            name: key,
+            value: totalPower,
+            percentage: totalPower / d3.sum(filteredData, d => d.sum_max_power_installed) * 100
+          };
+        })
+      };
+
+    console.log(hierarchyData);
+    // Specify dimensions
+    const width = 600;
+    const height = 300;
+  
+    // Create color scale
+    const color = d3.scaleOrdinal()
+      .domain(filteredData.map(d => d.energy_type))
+      .range(d3.schemeTableau10);
+  
+    // Compute treemap layout
+    const root = d3.hierarchy(hierarchyData)
+      .sum(d => d.value)
+      .sort((a, b) => b.value - a.value);
+  
+    d3.treemap()
+      .size([width, height])
+      .padding(1)
+      .round(true)(root);
+  
+    // Create SVG container
+    const svg = d3.select("#treeMap") // Replace with your container's selector
+    //   .html("") // Clear any previous content
+      .append("svg")
+      .attr("viewBox", `0 0 ${width} ${height}`)
+      .attr("width", width)
+      .attr("height", height)
+      .attr("style", "font: 10px sans-serif;");
+  
+    // Create a group for each leaf node
+    const leaf = svg.selectAll("g")
+      .data(root.leaves())
+      .join("g")
+      .attr("transform", d => `translate(${d.x0},${d.y0})`);
+  
+    // Add rectangles
+    leaf.append("rect")
+      .attr("fill", d => ctx.colorMapping[d.data.name])
+      .attr("fill-opacity", 0.6)
+      .attr("width", d => d.x1 - d.x0)
+      .attr("height", d => d.y1 - d.y0);
+  
+    // Add tooltips
+    leaf.append("title")
+      .text(d => `${d.data.name}\n${d.data.percentage.toFixed(2)}%`);
+  
+    // Add text labels
+    leaf.append("text")
+      .selectAll("tspan")
+      .data(d => [d.data.name, `${d.data.percentage.toFixed(2)}%`])
+      .join("tspan")
+      .attr("x", 3)
+      .attr("y", (d, i) => `${1.1 + i * 0.9}em`)
+      .attr("fill-opacity", (d, i) => i === 1 ? 0.7 : null)
+      .text(d => d);
+  }

@@ -28,9 +28,10 @@
         .main-container {
             display: flex;
             flex-direction: row;
-            justify-content: space-around;
+            justify-content: space-between;
             margin-left: 10px;
             margin-right: 10px;
+            gap: 10px;
         }
 
         .header {
@@ -55,9 +56,10 @@
         }
 
         .row {
+            flex: 0 0 50%; /* Fixed width: Takes 25% of the container */
             display: flex;
             flex-direction: column;
-            justify-content: space-between; /* Optional: space between items */
+            justify-content: flex-start; /* Optional: space between items */
         }
 
         .item {
@@ -68,7 +70,7 @@
             text-align: left;
         }
 
-        .map-filter-container {
+        #mapFilterContainer {
             display: flex;
             flex-direction: column;
         }
@@ -143,8 +145,11 @@
             z-index: 9999; /* Ensure it's on top of other elements */
         }
 
-        .site-details {
-            margin-top: 3px;
+        #all-viz {
+            flex: 1; /* Allow it to take the remaining space */
+            display: flex;
+            flex-direction: column; /* Stack items vertically */
+            gap: 10px; /* Space between the figures */
         }
     </style>
 </head>
@@ -155,7 +160,7 @@
         <header>France Renewable Energy</header>
         <main class="main-container">
             <div class="row">
-                <div id="map-filter-container">
+                <div id="mapFilterContainer">
                     <div class="container__title">Energy Type</div>
                     <div id="energy-type" class="filter-container"></div>
                     <!-- <div class="container__title" >Region</div> -->
@@ -165,8 +170,8 @@
                 <div id="tooltip"></div>
             </div>
             <!-- add div(s) here for each figure -->
-            <div class="row">
-                <div id="treeMap"></div>
+            <div id="all-viz", class="row">
+                <div id="treeMap" class="item"></div>
                 <div id="sankeyContainer" class="item"></div>
             </div>
         </main>
