@@ -50,6 +50,30 @@ function updateMap(currentFilters) {
             .style("opacity", shouldShow ? 0.7 : 0)
             .style("pointer-events", shouldShow ? "auto" : "none");
     });
+};
 
+function groupSitesByCommune(sites) {
+    return sites.reduce((acc, site) => {
+        if (!acc[site.commune]) {
+            acc[site.commune] = [];
+        }
+        acc[site.commune].push(site);
+        return acc;
+    }, {});
+};
 
-}
+function showCommuneTooltip(commune, siteDetails, x, y) {
+    const tooltip = d3.select("#tooltip");
+    tooltip.style("left", `${x + 10}px`)
+        .style("top", `${y + 10}px`)
+        .html(`
+            <strong>${commune}</strong>
+            <div style="margin-top: 3px;">${siteDetails}</div>
+        `)
+        .style("visibility", "visible");
+};
+
+function hideTooltip() {
+    const tooltip = d3.selectAll("#tooltip");
+    tooltip.style("visibility", "hidden");
+};

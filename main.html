@@ -91,6 +91,22 @@
             border-color: #0085b6;
             color: #fff;
         }
+
+        #tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            font-size: x-small;
+            padding: 3px;
+            border-radius: 3px;
+            visibility: hidden; /* Hidden by default */
+            pointer-events: none;
+            z-index: 9999; /* Ensure it's on top of other elements */
+        }
+
+        .site-details {
+            margin-top: 3px;
+        }
     </style>
 </head>
 
@@ -98,6 +114,7 @@
 
     <div class="flex-container">
         <div class="flex-map">
+            <div id="tooltip"></div>
             <div id="mapFilterContainer">
                 <div class="container__title">Energy Type</div>
                 <div id="energy-type" class="filter-container"></div>

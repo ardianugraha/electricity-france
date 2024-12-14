@@ -149,24 +149,24 @@ function drawMap() {
 
     ctx.LFmap.setView([46.603354, 1.888334], 6); // Center on France with a zoom level of 6
 
-    const regionLayer = L.geoJson(ctx.mapRegions, {
-        style: style,
-        onEachFeature: function(feature, layer) {
-            layer.on({
-                mouseover: function(e) {
-                    if (!isMouseOverSite) {
-                        highlightFeature(e);
-                    }
-                },
-                mouseout: function(e) {
-                    resetHighlight(e);
-                },
-                click: function(e) {
-                    zoomToFeature(e);
-                }
-            });
-        }
-    }).addTo(ctx.LFmap);
+    // const regionLayer = L.geoJson(ctx.mapRegions, {
+    //     style: style,
+    //     onEachFeature: function(feature, layer) {
+    //         layer.on({
+    //             mouseover: function(e) {
+    //                 if (!isMouseOverSite) {
+    //                     highlightFeature(e);
+    //                 }
+    //             },
+    //             mouseout: function(e) {
+    //                 resetHighlight(e);
+    //             },
+    //             click: function(e) {
+    //                 zoomToFeature(e);
+    //             }
+    //         });
+    //     }
+    // }).addTo(ctx.LFmap);
 
     L.svg().addTo(ctx.LFmap);
     let svgEl = d3.select("#mapContainer").select("svg");
@@ -232,6 +232,8 @@ function onSiteMouseOut() {
 }
 
 function plotSites() {
+    const groupedSites = groupSitesByCommune(ctx.sitesMap);
+    console.log(groupedSites);
     const colorMapping = {
         "Bioénergies": "#6B3F2A",   // Dark brown
         "Energie Marines": "#003366", // Dark blue
@@ -241,13 +243,10 @@ function plotSites() {
         "Nucléaire": "#D32F2F",      // Red
         "Solaire": "#FFD700"         // Yellow
     };
-
     let maxPowerExt = d3.extent(ctx.sitesMap, d => d.sum_max_power_installed);
-
     ctx.rScale = d3.scaleLog()
         .domain(maxPowerExt)
         .range([1, 12]);
-
     let siteSelection = d3.select("g#sites")
         .selectAll("circle")
         .data(ctx.sitesMap);
@@ -262,8 +261,12 @@ function plotSites() {
         .style("fill", d => colorMapping[d.energy_type])
         .style("opacity", 0.7)
         .style("pointer-events", "auto") 
-        .on("mouseover", onSiteMouseOver) // Detect when mouse is over a site
-        .on("mouseout", onSiteMouseOut)
+        .on("mouseover", function(event, d) {
+            const communeSites = groupedSites[d.commune];
+            const siteDetails = communeSites.map(site => `${site.energy_type}: ${site.sum_max_power_installed} MW`).join("<br>");
+            showCommuneTooltip(d.commune, siteDetails, event.pageX, event.pageY);
+        })
+        .on("mouseout", hideTooltip)
         .on("click", function(event, d) {
             event.stopPropagation();
             console.log("site clicked:", d);
