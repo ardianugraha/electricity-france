@@ -30,10 +30,10 @@ const handleButtonClick = (e, key, param, container) => {
         ctx.currentFilters[key] = ctx.currentFilters[key].filter((item) => item !== param);
     }
 
-    updateMap(ctx.currentFilters);
+    updateFilter(ctx.currentFilters);
 };
 
-function updateMap(currentFilters) {
+function updateFilter(currentFilters) {
     const allEnergyTypes = Object.keys(ctx.sitesMap.reduce((types, site) => {
         types[site.energy_type] = true;
         return types;
@@ -45,10 +45,12 @@ function updateMap(currentFilters) {
             currentFilters.energyType.length === 0 || // No filter applied
             currentFilters.energyType.includes(type);
 
-        // Toggle visibility based on the filter
+        // update map
         d3.selectAll(`circle.${normalizedType}`)
             .style("opacity", shouldShow ? 0.7 : 0)
             .style("pointer-events", shouldShow ? "auto" : "none");
+        // update treemap
+        createTreeMap(ctx.sitesMap, currentFilters);
     });
 };
 

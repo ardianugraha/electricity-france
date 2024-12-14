@@ -434,11 +434,15 @@ function drawCapDistribution() {
 
 };
 
-function createTreeMap(data, selectedEnergyType) {
-    // Filter data based on the selected energy type
-    console.log(data);
-    const filteredData = data;
-    // data.filter(d => d.energy_type === selectedEnergyType);
+function createTreeMap(data, filters) {
+    d3.select("#treeMap").selectAll("*").remove();
+
+    const filteredData = data.filter(d => {
+        const energyMatch = filters.energyType.length === 0 || filters.energyType.includes(d.energy_type);
+        // const regionMatch = filters.region.length === 0 || filters.region.includes(d.commune);
+        // return energyMatch && regionMatch;
+        return energyMatch;
+    });
     const groupedData = d3.group(filteredData, d => d.energy_type);
 
     // Compute the total max power installed for the selected energy type
@@ -494,10 +498,15 @@ function createTreeMap(data, selectedEnergyType) {
   
     // Add rectangles
     leaf.append("rect")
-      .attr("fill", d => ctx.colorMapping[d.data.name])
-      .attr("fill-opacity", 0.6)
-      .attr("width", d => d.x1 - d.x0)
-      .attr("height", d => d.y1 - d.y0);
+        .attr("fill", d => ctx.colorMapping[d.data.name])
+        .attr("fill-opacity", 0.6)
+        .attr("width", d => d.x1 - d.x0)
+        .attr("height", d => d.y1 - d.y0)
+        .style("opacity", 0)
+        .transition()
+        .duration(500)
+        .style("opacity", 1);
+
   
     // Add tooltips
     leaf.append("title")
