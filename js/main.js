@@ -102,14 +102,19 @@ function loadData() {
         ctx.sitesMap = sites.map(row => ({
                             code: row.codeINSEECommune,
                             commune: row.commune,
+                            dept_code: row.codeDepartement,
+                            dept: row.departement,
+                            region_code: row.codeRegion,
+                            region: row.region,
                             energy_type: row.filiere,
-                            sum_max_power_installed: +row.sum_puisMaxInstallee,
+                            sum_max_power_installed: +row.sum_puisMaxInstallee / 1000 ,
                             sum_nb_installation: +row.sum_nbInstallations,
                             long: row.long, 
                             lat: row.lat 
                         }));
 
         ctx.energyType.forEach(type => createFilter("energyType", type, energyTypeContainer));
+        populateRegionDropdown(ctx.mapRegions);
 
         drawMap();
 
@@ -129,7 +134,7 @@ function loadData() {
         // For example: drawMap(svgEl, regionalData);
         drawSankey(regionProductionData, regionalConsumptionData);
 
-        createTreeMap(ctx.sitesMap, ctx.currentFilters);
+        drawTreeMap(ctx.sitesMap, ctx.currentFilters);
     }).catch(function (error) {
         console.error("Error loading data:", error);
     });
@@ -140,7 +145,7 @@ function drawMap() {
     // draw France map with its regions
     ctx.LFmap = L.map('mapContainer', {
         minZoom: 6, // Minimum zoom level to avoid zooming too far out
-        maxZoom: 12, // Maximum zoom level
+        maxZoom: 10, // Maximum zoom level
         maxBoundsViscosity: 1, // Ensures the map sticks within the bounds
     });
 
@@ -228,13 +233,14 @@ function resetHighlight(e) {
 function plotSites() {
     const groupedSites = groupSitesByCommune(ctx.sitesMap);
 
+    filteredSites = ctx.sitesMap.filter(d => d.sum_max_power_installed >= 1); // only plot power >= 1 GWh
     let maxPowerExt = d3.extent(ctx.sitesMap, d => d.sum_max_power_installed);
-    ctx.rScale = d3.scalePow()
+    ctx.rScale = d3.scaleLinear()
         .domain(maxPowerExt)
-        .range([2, 15]);
+        .range([2, 30]);
     let siteSelection = d3.select("g#sites")
         .selectAll("circle")
-        .data(ctx.sitesMap);
+        .data(filteredSites);
 
     // Enter: Add new circles for sites
     siteSelection.enter()
@@ -248,7 +254,7 @@ function plotSites() {
         .style("pointer-events", "auto") 
         .on("mouseover", function(event, d) {
             const communeSites = groupedSites[d.commune];
-            const siteDetails = communeSites.map(site => `${site.energy_type}: ${site.sum_max_power_installed} MW`).join("<br>");
+            const siteDetails = communeSites.map(site => `${site.energy_type}: ${site.sum_max_power_installed} GWh`).join("<br>");
             showCommuneTooltip(d.commune, siteDetails, event.pageX, event.pageY);
         })
         .on("mouseout", hideTooltip)
@@ -434,15 +440,17 @@ function drawCapDistribution() {
 
 };
 
-function createTreeMap(data, filters) {
+function drawTreeMap(data, filters) {
     d3.select("#treeMap").selectAll("*").remove();
 
     const filteredData = data.filter(d => {
         const energyMatch = filters.energyType.length === 0 || filters.energyType.includes(d.energy_type);
-        // const regionMatch = filters.region.length === 0 || filters.region.includes(d.commune);
-        // return energyMatch && regionMatch;
-        return energyMatch;
+        const regionMatch = filters.region.length === 0 || filters.region.includes(d.region);
+        return energyMatch && regionMatch;
+        // return energyMatch;
     });
+
+    console.log(filteredData);
     const groupedData = d3.group(filteredData, d => d.energy_type);
 
     // Compute the total max power installed for the selected energy type
@@ -477,6 +485,7 @@ function createTreeMap(data, filters) {
       .sort((a, b) => b.value - a.value);
   
     d3.treemap()
+      .tile(d3.treemapSquarify)
       .size([width, height])
       .padding(1)
       .round(true)(root);
@@ -510,7 +519,7 @@ function createTreeMap(data, filters) {
   
     // Add tooltips
     leaf.append("title")
-      .text(d => `${d.data.name}\n${d.data.percentage.toFixed(2)}%`);
+      .text(d => `${d.data.name}\n${d.data.value.toFixed(2)} GWh`);
   
     // Add text labels
     leaf.append("text")

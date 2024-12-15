@@ -11,6 +11,9 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <script src="https://unpkg.com/esri-leaflet@3.0.10/dist/esri-leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-beta.1/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0-beta.1/js/select2.min.js"></script>
     <script type="text/javascript" src="js/main.js"></script>
     <script type="text/javascript" src="js/utils.js"></script>
     <style type="text/css">
@@ -70,9 +73,10 @@
             text-align: left;
         }
 
-        #mapFilterContainer {
+        .mapFilterContainer {
             display: flex;
-            flex-direction: column;
+            flex-direction: row;
+            gap: 25px;
         }
 
         #mapContainer {
@@ -160,12 +164,16 @@
         <header>France Renewable Energy</header>
         <main class="main-container">
             <div class="row">
-                <div id="mapFilterContainer">
-                    <div class="container__title">Energy Type</div>
-                    <div id="energy-type" class="filter-container"></div>
-                    <!-- <div class="container__title" >Region</div> -->
-                    <!-- <div id="region" class="filter-container"></div> -->
-                </div>
+                <div class="mapFilterContainer">
+                    <div id="energyTypeFilterContainer">
+                        <div class="container__title">Energy Type</div>
+                        <div id="energy-type" class="filter-container"></div>
+                    </div>
+                    <div id="regionFilterContainer">
+                        <div class="container__title" >Region</div>
+                        <select id="region-select" style="width: 100%"></select>
+                    </div>
+                </div> 
                 <div id="mapContainer">France Metropolitan</div>
                 <div id="tooltip"></div>
             </div>

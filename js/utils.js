@@ -33,6 +33,36 @@ const handleButtonClick = (e, key, param, container) => {
     updateFilter(ctx.currentFilters);
 };
 
+function populateRegionDropdown(data) {
+    // Extract unique regions
+    const regions = [...new Set(data.features.map(d => d.properties.region_name))].sort();
+
+    // Populate the dropdown
+    const dropdown = d3.select("#region-select");
+    dropdown.append("option").attr("value", "").text("Select a Region"); // Default option
+
+    regions.forEach(region => {
+        dropdown.append("option")
+            .attr("value", region)
+            .text(region);
+    });
+
+    // Initialize Select2
+    $('#region-select').select2({
+        placeholder: "Search for a region",
+        allowClear: true
+    });
+
+    // Handle change event
+    $('#region-select').on("change", function () {
+        const selectedRegion = $(this).val();
+        console.log(selectedRegion);
+        ctx.currentFilters.region = selectedRegion;
+        updateFilter(ctx.currentFilters);
+        // filterByRegion(selectedRegion);
+    });
+};
+
 function updateFilter(currentFilters) {
     const allEnergyTypes = Object.keys(ctx.sitesMap.reduce((types, site) => {
         types[site.energy_type] = true;
@@ -50,7 +80,7 @@ function updateFilter(currentFilters) {
             .style("opacity", shouldShow ? 0.7 : 0)
             .style("pointer-events", shouldShow ? "auto" : "none");
         // update treemap
-        createTreeMap(ctx.sitesMap, currentFilters);
+        drawTreeMap(ctx.sitesMap, currentFilters);
     });
 };
 
@@ -79,3 +109,4 @@ function hideTooltip() {
     const tooltip = d3.selectAll("#tooltip");
     tooltip.style("visibility", "hidden");
 };
+
