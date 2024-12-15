@@ -49,9 +49,9 @@ function loadData() {
 
     const promise_files = [
         d3.json("datasets/prod-region-annuelle-filiere.geojson"),
-        d3.json("datasets/production-electrique-par-filiere-a-la-maille-departement.geojson"),
         d3.csv("datasets/registre-national-installation-production-stockage-electricite grouped.csv"),
         d3.text("datasets/part-regionale-consommation-nationale-couverte-par-filiere.csv").then(text => semicolonCSV.parse(text)),
+        d3.text("datasets/conso-nette-regionale.csv").then(text => semicolonCSV.parse(text))
     ];
 
     const energyTypeContainer = document.querySelector("#energy-type");
@@ -59,17 +59,12 @@ function loadData() {
 
     Promise.all(promise_files).then(function (data) {
         const prod_region = data[0];
-        const prod_dept = data[1];
-        const sites = data[2];
-        const regionConsumption = data[3];
-
-        // console.log(sites);
-        // console.log(prod_region);
-        // console.log(prod_dept);
+        const sites = data[1];
+        const cons_region_part_national = data[2];
+        const cons_region = data[3];
 
         /* Prepare map data of regions */
         ctx.mapRegions = {"type": "FeatureCollection", "features": []};
-        ctx.prodDataRegions = {}
         prod_region.features.forEach(feature => {
             let region_code = feature.properties.code_insee_region
             let exists = ctx.mapRegions.features.some(i => i.properties.region_code == region_code);
@@ -84,42 +79,56 @@ function loadData() {
                 })
             };
         });
+
+        ctx.regionLookup = {
+            codeToName: {},
+            nameToCode: {}
+        };
+        ctx.mapRegions.features.forEach(feature => {
+            const regionCode = feature.properties.region_code;
+            const regionName = feature.properties.region_name;
+            ctx.regionLookup.codeToName[regionCode] = regionName;
+            ctx.regionLookup.nameToCode[regionName] = regionCode;
+        });
         
-        regionProductionData = prod_region.features.map(feature => ({
+        ctx.prodRegion = prod_region.features.map(feature => ({
             year: +feature.properties.annee,
             regionCode: feature.properties.code_insee_region,
             regionName: feature.properties.region,
-            nuclear: feature.properties.production_nucleaire,
-            thermique: feature.properties.production_thermique,
-            hydraulique: feature.properties.production_hydraulique,
-            eolienne: feature.properties.production_eolienne,
-            solaire: feature.properties.production_solaire,
-            bioenergies: feature.properties.bioenergies,
+            nuclearGWh: +feature.properties.production_nucleaire || 0,
+            nonRenewableGWh: +feature.properties.production_thermique || 0,
+            hydroGWh: +feature.properties.production_hydraulique || 0,
+            windGWh: +feature.properties.production_eolienne || 0,
+            solarGWh: +feature.properties.production_solaire || 0,
+            bioenergyGWh: +feature.properties.bioenergies || 0,
+            totalGWh: (
+                (+feature.properties.production_nucleaire || 0) +
+                (+feature.properties.production_thermique || 0) +
+                (+feature.properties.production_hydraulique || 0) +
+                (+feature.properties.production_eolienne || 0) +
+                (+feature.properties.production_solaire || 0) +
+                (+feature.properties.bioenergies || 0)
+            )
         }));
-        // console.log(ctx.regionProductionData);
+        console.log(ctx.prodRegion);
 
         /* Prepare generator sites data with long lat */
         ctx.sitesMap = sites.map(row => ({
-                            code: row.codeINSEECommune,
-                            commune: row.commune,
-                            dept_code: row.codeDepartement,
-                            dept: row.departement,
-                            region_code: row.codeRegion,
-                            region: row.region,
-                            energy_type: row.filiere,
-                            sum_max_power_installed: +row.sum_puisMaxInstallee / 1000 ,
-                            sum_nb_installation: +row.sum_nbInstallations,
-                            long: row.long, 
-                            lat: row.lat 
-                        }));
-
-        ctx.energyType.forEach(type => createFilter("energyType", type, energyTypeContainer));
-        populateRegionDropdown(ctx.mapRegions);
-
-        drawMap();
+            code: row.codeINSEECommune,
+            commune: row.commune,
+            dept_code: row.codeDepartement,
+            dept: row.departement,
+            region_code: row.codeRegion,
+            region: row.region,
+            energy_type: row.filiere,
+            sum_max_power_installed: +row.sum_puisMaxInstallee / 1000, // convert MW to GW
+            sum_nb_installation: +row.sum_nbInstallations,
+            long: row.long, 
+            lat: row.lat 
+        }));
 
         // Process national consumption data
-        const regionalConsumptionData = regionConsumption.map(d => ({
+        ctx.consRegionPart = cons_region_part_national.map(d => ({
             year: +d["Année"],
             regionCode: d["Code INSEE région"],
             regionName: d["Région"],
@@ -130,11 +139,23 @@ function loadData() {
         }));
         // console.log("Processed national installation data:", installationData);
 
+        ctx.consRegion = cons_region.map(d => ({
+            year: +d["Année"],
+            regionCode: d["Code INSEE région"],
+            regionName: d["Région"],
+            consumptionNetGWh: +d["Conso_nette_corrigée_TWh"] * 1000, //c convert TWh to GWh
+        }));
+        console.log(ctx.consRegion);
+
+        ctx.energyType.forEach(type => createFilter("energyType", type, energyTypeContainer));
+        populateRegionDropdown(ctx.mapRegions);
+        drawMap();
         // Call visualization functions
         // For example: drawMap(svgEl, regionalData);
-        drawSankey(regionProductionData, regionalConsumptionData);
+        drawSankey(ctx.prodRegion, ctx.consRegionPart);
 
         drawTreeMap(ctx.sitesMap, ctx.currentFilters);
+        drawLineChart();
     }).catch(function (error) {
         console.error("Error loading data:", error);
     });
@@ -233,11 +254,11 @@ function resetHighlight(e) {
 function plotSites() {
     const groupedSites = groupSitesByCommune(ctx.sitesMap);
 
-    filteredSites = ctx.sitesMap.filter(d => d.sum_max_power_installed >= 1); // only plot power >= 1 GWh
+    filteredSites = ctx.sitesMap.filter(d => d.sum_max_power_installed >= 0); // only plot power >= 1 GWh
     let maxPowerExt = d3.extent(ctx.sitesMap, d => d.sum_max_power_installed);
-    ctx.rScale = d3.scaleLinear()
+    ctx.rScale = d3.scalePow()
         .domain(maxPowerExt)
-        .range([2, 30]);
+        .range([1, 25]);
     let siteSelection = d3.select("g#sites")
         .selectAll("circle")
         .data(filteredSites);
@@ -254,7 +275,7 @@ function plotSites() {
         .style("pointer-events", "auto") 
         .on("mouseover", function(event, d) {
             const communeSites = groupedSites[d.commune];
-            const siteDetails = communeSites.map(site => `${site.energy_type}: ${site.sum_max_power_installed} GWh`).join("<br>");
+            const siteDetails = communeSites.map(site => `${site.energy_type}: ${site.sum_max_power_installed.toFixed(2)} GW`).join("<br>");
             showCommuneTooltip(d.commune, siteDetails, event.pageX, event.pageY);
         })
         .on("mouseout", hideTooltip)
@@ -442,12 +463,10 @@ function drawCapDistribution() {
 
 function drawTreeMap(data, filters) {
     d3.select("#treeMap").selectAll("*").remove();
-
     const filteredData = data.filter(d => {
         const energyMatch = filters.energyType.length === 0 || filters.energyType.includes(d.energy_type);
-        const regionMatch = filters.region.length === 0 || filters.region.includes(d.region);
+        const regionMatch =  filters.region.length === 0 || d.region_code == ctx.regionLookup.nameToCode[filters.region];
         return energyMatch && regionMatch;
-        // return energyMatch;
     });
 
     console.log(filteredData);
@@ -455,17 +474,17 @@ function drawTreeMap(data, filters) {
 
     // Compute the total max power installed for the selected energy type
     const totalMaxPower = d3.sum(filteredData, d => d.sum_max_power_installed);
-    console.log(totalMaxPower);
+
     // Transform data into hierarchical format for treemap
     const hierarchyData = {
         name: "root",
         children: Array.from(groupedData, ([key, values]) => {
-          const totalPower = d3.sum(values, d => d.sum_max_power_installed);
-          return {
-            name: key,
-            value: totalPower,
-            percentage: totalPower / d3.sum(filteredData, d => d.sum_max_power_installed) * 100
-          };
+            const totalPower = d3.sum(values, d => d.sum_max_power_installed);
+            return {
+                name: key,
+                value: totalPower,
+                percentage: totalPower / d3.sum(filteredData, d => d.sum_max_power_installed) * 100
+            };
         })
       };
 
@@ -476,34 +495,34 @@ function drawTreeMap(data, filters) {
   
     // Create color scale
     const color = d3.scaleOrdinal()
-      .domain(filteredData.map(d => d.energy_type))
-      .range(d3.schemeTableau10);
+        .domain(filteredData.map(d => d.energy_type))
+        .range(d3.schemeTableau10);
   
     // Compute treemap layout
     const root = d3.hierarchy(hierarchyData)
-      .sum(d => d.value)
-      .sort((a, b) => b.value - a.value);
+        .sum(d => d.value)
+        .sort((a, b) => b.value - a.value);
   
     d3.treemap()
-      .tile(d3.treemapSquarify)
-      .size([width, height])
-      .padding(1)
-      .round(true)(root);
+        .tile(d3.treemapSquarify)
+        .size([width, height])
+        .padding(1)
+        .round(true)(root);
   
     // Create SVG container
-    const svg = d3.select("#treeMap") // Replace with your container's selector
-    //   .html("") // Clear any previous content
-      .append("svg")
-      .attr("viewBox", `0 0 ${width} ${height}`)
-      .attr("width", width)
-      .attr("height", height)
-      .attr("style", "font: 10px sans-serif;");
+    const svg = d3.select("#treeMap")
+        .html("")
+        .append("svg")
+        .attr("viewBox", `0 0 ${width} ${height}`)
+        .attr("width", width)
+        .attr("height", height)
+        .attr("style", "font: 10px sans-serif;");
   
     // Create a group for each leaf node
     const leaf = svg.selectAll("g")
-      .data(root.leaves())
-      .join("g")
-      .attr("transform", d => `translate(${d.x0},${d.y0})`);
+        .data(root.leaves())
+        .join("g")
+        .attr("transform", d => `translate(${d.x0},${d.y0})`);
   
     // Add rectangles
     leaf.append("rect")
@@ -519,15 +538,129 @@ function drawTreeMap(data, filters) {
   
     // Add tooltips
     leaf.append("title")
-      .text(d => `${d.data.name}\n${d.data.value.toFixed(2)} GWh`);
+        .text(d => `${d.data.name}\n${d.data.value.toFixed(2)} GW`);
   
     // Add text labels
     leaf.append("text")
-      .selectAll("tspan")
-      .data(d => [d.data.name, `${d.data.percentage.toFixed(2)}%`])
-      .join("tspan")
-      .attr("x", 3)
-      .attr("y", (d, i) => `${1.1 + i * 0.9}em`)
-      .attr("fill-opacity", (d, i) => i === 1 ? 0.7 : null)
-      .text(d => d);
-  }
+        .selectAll("tspan")
+        .data(d => [d.data.name, `${d.data.percentage.toFixed(2)}%`])
+        .join("tspan")
+        .attr("x", 3)
+        .attr("y", (d, i) => `${1.1 + i * 0.9}em`)
+        .attr("fill-opacity", (d, i) => i === 1 ? 0.7 : null)
+        .text(d => d);
+};
+
+function drawLineChart() {
+    const width = 928;
+    const height = 600;
+    const marginTop = 20;
+    const marginRight = 20;
+    const marginBottom = 30;
+    const marginLeft = 30;
+
+    // Create the positional scales.
+    const x = d3.scaleLinear()
+        .domain(d3.extent(ctx.prodRegion, d => d.year))
+        .range([marginLeft, width - marginRight]);
+
+    const y = d3.scaleLinear()
+        .domain([0, d3.max(ctx.prodRegion, d => d.totalGWh)]).nice()
+        .range([height - marginBottom, marginTop]);
+
+    const svg = d3.select("#lineChart")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .attr("viewBox", [0, 0, width, height])
+        .attr("style", "max-width: 100%; height: auto; overflow: visible; font: 10px sans-serif;");      
+    
+    // Add the horizontal axis.
+    svg.append("g")
+        .attr("transform", `translate(0,${height - marginBottom})`)
+        .call(d3.axisBottom(x).ticks(width / 80).tickSizeOuter(0));
+
+    // Add the vertical axis.
+    svg.append("g")
+        .attr("transform", `translate(${marginLeft},0)`)
+        .call(d3.axisLeft(y))
+        .call(g => g.select(".domain").remove())
+        .call(g => g.selectAll(".tick line").clone()
+            .attr("x2", width - marginLeft - marginRight)
+            .attr("stroke-opacity", 0.1))
+        .call(g => g.append("text")
+            .attr("x", -marginLeft)
+            .attr("y", 10)
+            .attr("fill", "currentColor")
+            .attr("text-anchor", "start")
+            .text("↑ Total Production (GWh)"));
+
+    ctx.prodRegion.sort((a, b) => d3.ascending(a.year, b.year));
+
+    // Compute the points in pixel space as [x, y, z], where z is the name of the series.
+    const points = ctx.prodRegion.map((d) => [x(d.year), y(d.totalGWh), d.regionName]);
+
+    // Group the points by series.
+    const groups = d3.rollup(points, v => Object.assign(v, {z: v[0][2]}), d => d[2]);
+
+    // Draw the lines.
+    const line = d3.line();
+    const path = svg.append("g")
+        .attr("fill", "none")
+        .attr("stroke", "steelblue")
+        .attr("stroke-width", 1.5)
+        .attr("stroke-linejoin", "round")
+        .attr("stroke-linecap", "round")
+        .selectAll("path")
+        .data(groups.values())
+        .join("path")
+        .style("mix-blend-mode", "multiply")
+        .attr("d", line);
+    // Add an invisible layer for the interactive tip.
+    const dot = svg.append("g")
+        .attr("display", "none");
+
+    dot.append("circle")
+        .attr("r", 2.5);
+
+    dot.append("text")
+        .attr("text-anchor", "middle")
+        .attr("y", -8);
+
+    svg
+        .on("pointerenter", pointerentered)
+        .on("pointermove", pointermoved)
+        .on("pointerleave", pointerleft)
+        .on("touchstart", event => event.preventDefault());
+
+    return svg.node();
+
+    function pointermoved(event) {
+        const [xm, ym] = d3.pointer(event);
+        const i = d3.leastIndex(points, ([x, y]) => Math.hypot(x - xm, y - ym));
+        const [x, y, k] = points[i];
+        // const hoveredYear = xScale.invert(x);
+        const dataPoint = ctx.prodRegion.find(d => d.regionName === k && d.year === y);
+        console.log(dataPoint);
+        // const dataPoint = ctx.prodRegion.find(d => d.regionName === k && x === xScale(d.year));
+
+        path.style("stroke", ({z}) => z === k ? null : "#ddd").filter(({z}) => z === k).raise();
+        dot.attr("transform", `translate(${x},${y})`);
+        dot.select("text").text(`${k}`);
+        // svg.property("value", ctx.prodRegion.totalGWh[i]).dispatch("input", {bubbles: true});
+        // svg.property("value", dataPoint ? dataPoint.totalGWh : null).dispatch("input", {bubbles: true});
+
+    }
+
+    function pointerentered() {
+        path.style("mix-blend-mode", null).style("stroke", "#ddd");
+        dot.attr("display", null);
+    }
+
+    function pointerleft() {
+        path.style("mix-blend-mode", "multiply").style("stroke", null);
+        dot.attr("display", "none");
+        svg.node().value = null;
+        svg.dispatch("input", {bubbles: true});
+    }
+};

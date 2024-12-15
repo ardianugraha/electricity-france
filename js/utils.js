@@ -39,7 +39,7 @@ function populateRegionDropdown(data) {
 
     // Populate the dropdown
     const dropdown = d3.select("#region-select");
-    dropdown.append("option").attr("value", "").text("Select a Region"); // Default option
+    dropdown.append("option").attr("value", "").text("Select region"); // Default option
 
     regions.forEach(region => {
         dropdown.append("option")
@@ -49,17 +49,15 @@ function populateRegionDropdown(data) {
 
     // Initialize Select2
     $('#region-select').select2({
-        placeholder: "Search for a region",
+        placeholder: "Select region",
         allowClear: true
     });
 
     // Handle change event
     $('#region-select').on("change", function () {
         const selectedRegion = $(this).val();
-        console.log(selectedRegion);
         ctx.currentFilters.region = selectedRegion;
         updateFilter(ctx.currentFilters);
-        // filterByRegion(selectedRegion);
     });
 };
 
@@ -79,9 +77,9 @@ function updateFilter(currentFilters) {
         d3.selectAll(`circle.${normalizedType}`)
             .style("opacity", shouldShow ? 0.7 : 0)
             .style("pointer-events", shouldShow ? "auto" : "none");
-        // update treemap
-        drawTreeMap(ctx.sitesMap, currentFilters);
     });
+    // update treemap
+    drawTreeMap(ctx.sitesMap, currentFilters);
 };
 
 function groupSitesByCommune(sites) {
