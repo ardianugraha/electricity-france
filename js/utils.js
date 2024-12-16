@@ -1,7 +1,10 @@
 // TODO
 // define functions here
 function extractRegion(str) {
-    return str.split('-').pop();
+    if (str.includes("-")) {
+        return str.substring(str.indexOf("-") + 1);
+    }
+    return str;
   }
 
 const createFilter = (key, param, container) => {
@@ -108,3 +111,8 @@ function hideTooltip() {
     tooltip.style("visibility", "hidden");
 };
 
+const findStr = (arr, str) => arr.some(e => e.toLowerCase().search(str.toLowerCase()) !== -1)
+
+function capitalizeFirstLetter(val) {
+    return String(val).charAt(0).toUpperCase() + String(val).slice(1);
+}
