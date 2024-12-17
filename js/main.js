@@ -11,23 +11,23 @@ const ctx = {
         'Wind', 
         'Solar', 
         'Bioenergy', 
+        'Non-renewable',
         'Marine Energy', 
         'Geothermal',
-        'Non-renewable',
-        'Storage',
-        'Other'
+        // 'Storage',
+        // 'Other'
     ],
     colorMapping: {
         "Bioenergy": "#6B3F2A",   // Dark brown
-        "Marine Energy": "#003366", // Dark blue
         "Wind": "#87CEEB",         // Sky blue
-        "Geothermal": "#FFA500",     // Orange
         "Hydro": "#4682B4",    // Steel blue
         "Nuclear": "#D32F2F",      // Red
         "Solar": "#e8c33c",         // Yellow
         "Non-renewable": "black",
-        "Storage": "silver",
-        "Other": "darkgray",
+        "Marine Energy": "#003366", // Dark blue
+        "Geothermal": "#FFA500",     // Orange
+        // "Storage": "silver",
+        // "Other": "darkgray",
     },
     currentFilters: {
         energyType: [],
@@ -125,7 +125,10 @@ function loadData() {
             sum_nb_installation: +row.sum_nbInstallations,
             long: row.long, 
             lat: row.lat 
-        }));
+        }))
+        .filter(row => 
+            !['Other', 'Storage'].includes(row.energy_type)
+        );
 
         // Process national consumption data
         ctx.consRegionPart = cons_region_part_national.map(d => ({

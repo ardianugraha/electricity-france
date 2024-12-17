@@ -80,7 +80,7 @@ function updateFilter(currentFilters) {
     });
     // update treemap
     drawTreeMap(ctx.sitesMap, currentFilters);
-    drawLineChart(currentFilters);
+    // drawLineChart(currentFilters);
 };
 
 function groupSitesByCommune(sites) {
