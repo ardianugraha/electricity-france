@@ -79,7 +79,8 @@ function updateFilter(currentFilters) {
             .style("pointer-events", shouldShow ? "auto" : "none");
     });
     // update treemap
-    drawTreeMap(ctx.sitesMap, currentFilters);
+    drawTreeMapSite(ctx.sitesMap, currentFilters);
+    drawTreeMapProd(ctx.prodRegion, currentFilters);
     // drawLineChart(currentFilters);
 };
 
@@ -128,3 +129,67 @@ function handleRegionClick(regionCode) {
     // Update treemap and other visuals
     updateFilter(ctx.currentFilters);
 }
+
+function drawTreeMap(hierarchyData, elementId) {
+    d3.select(elementId).selectAll("*").remove();
+
+    // Specify dimensions
+    const width = 600;
+    const height = 300;
+  
+    // Compute treemap layout
+    const root = d3.hierarchy(hierarchyData)
+        .sum(d => d.value)
+        .sort((a, b) => b.value - a.value);
+  
+    d3.treemap()
+        .tile(d3.treemapSquarify)
+        .size([width, height])
+        .padding(1)
+        .round(true)(root);
+  
+    // Create SVG container
+    const svg = d3.select(elementId)
+        .html("")
+        .append("svg")
+        .attr("viewBox", `0 0 ${width} ${height}`)
+        .attr("width", width)
+        .attr("height", height)
+        .attr("style", "font: 10px sans-serif;");
+  
+    // Create a group for each leaf node
+    const leaf = svg.selectAll("g")
+        .data(root.leaves())
+        .join("g")
+        .attr("transform", d => `translate(${d.x0},${d.y0})`);
+  
+    // Add rectangles
+    leaf.append("rect")
+        .attr("fill", d => ctx.colorMapping[d.data.name])
+        .attr("fill-opacity", 0.6)
+        .attr("width", d => d.x1 - d.x0)
+        .attr("height", d => d.y1 - d.y0)
+        .style("opacity", 0)
+        .transition()
+        .duration(500)
+        .style("opacity", 1);
+    
+    if (elementId == "#treeMapSite") {
+        unit = "GW" // unit of generator
+    } else {
+        unit = "GWh" // unit of production
+    }
+    // Add tooltips
+    leaf.append("title")
+        .text(d => `${d.data.name}\n${d.data.value.toFixed(2)} ${unit}`);
+  
+    // Add text labels
+    leaf.append("text")
+        .selectAll("tspan")
+        .data(d => [d.data.name, `${d.data.percentage.toFixed(2)}%`])
+        .join("tspan")
+        .attr("x", 3)
+        .attr("y", (d, i) => `${1.1 + i * 0.9}em`)
+        .attr("fill-opacity", (d, i) => i === 1 ? 0.7 : null)
+        .text(d => d);
+};
