@@ -451,6 +451,10 @@ function drawSankey() {
         .attr("font-size", "10px")
         .attr("fill", "black");
 
+    // Adds a title on the nodes.
+    node.append("title")
+        .text(d => `${d.name}\n${d.value} GWh`);
+
     // Logging for debugging
     // console.log("Nodes:", allNodes);
     // console.log("Links:", links);
