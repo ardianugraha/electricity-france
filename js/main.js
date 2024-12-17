@@ -185,22 +185,23 @@ function drawMap() {
         onEachFeature: function(feature, layer) {
             layer.on({
                 mouseover: function(e) {
-                    highlightFeature(e);
+                    highlightRegion(e);
                     // if (!isMouseOverSite) {
                     //     highlightFeature(e);
                     // }
                 },
                 mouseout: function(e) {
-                    resetHighlight(e);
+                    resetHighlightRegion(e);
                 },
                 click: function(e) {
                     if (!ctx.clicked || e.target.feature.properties.region_code !== ctx.zoomedRegion) {
-                        zoomToFeature(e);
+                        zoomToRegion(e);
+                        handleRegionClick(e.target.feature.properties.region_code);
                         ctx.clicked = true;
-                        ctx.zoomedRegion = e.target.feature.properties.region_code
+                        ctx.zoomedRegion = e.target.feature.properties.region_code;
                     } else {
                         zoomOutMap(e);
-                        ctx.clicked = false
+                        ctx.clicked = false;
                     }
                 }
             });
@@ -227,7 +228,7 @@ function style(feature) {
     };
 };
 
-function zoomToFeature(e) {
+function zoomToRegion(e) {
     const layer = e.target;
     ctx.selectedRegionCode = layer.feature.properties.region_code;
     // console.log(ctx.selectedRegionCode);
@@ -237,12 +238,10 @@ function zoomToFeature(e) {
 function zoomOutMap(e) {
     const layer = e.target;
     ctx.selectedRegionCode = layer.feature.properties.region_code;
-    // console.log(ctx.selectedRegionCode);
-    // ctx.LFmap.fitBounds(layer.getBounds());
     ctx.LFmap.setView([46.603354, 1.888334], 6);
 };
 
-function highlightFeature(e, data) {
+function highlightRegion(e, data) {
     const layer = e.target;
     layer.setStyle({
         fillColor: "lightyellow",
@@ -255,7 +254,7 @@ function highlightFeature(e, data) {
     showRegionTooltip(e.target.feature.properties.region_code, e.pageX, e.pageY);
 };
 
-function resetHighlight(e) {
+function resetHighlightRegion(e) {
     const layer = e.target;
     layer.setStyle({
         fillColor: "lightyellow",
@@ -568,7 +567,8 @@ function drawTreeMap(data, filters) {
         .text(d => d);
 };
 
-function drawLineChart() {
+function drawLineChart(currentFilters) {
+    
     const width = 928;
     const height = 600;
     const marginTop = 20;
@@ -681,3 +681,4 @@ function drawLineChart() {
         svg.dispatch("input", {bubbles: true});
     }
 };
+

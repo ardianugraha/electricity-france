@@ -80,6 +80,7 @@ function updateFilter(currentFilters) {
     });
     // update treemap
     drawTreeMap(ctx.sitesMap, currentFilters);
+    drawLineChart(currentFilters);
 };
 
 function groupSitesByCommune(sites) {
@@ -117,3 +118,13 @@ function hideTooltip() {
     tooltip.style("visibility", "hidden");
 };
 
+function handleRegionClick(regionCode) {
+    const regionName = ctx.regionLookup.codeToName[regionCode];
+    ctx.currentFilters.region = regionName;
+
+    // Update dropdown to match the clicked region
+    $('#region-select').val(regionName).trigger('change');
+
+    // Update treemap and other visuals
+    updateFilter(ctx.currentFilters);
+}
