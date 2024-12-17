@@ -420,11 +420,7 @@ function drawSankey() {
         .attr("d", d3.sankeyLinkHorizontal())
         .attr("fill", "none")
         .attr("stroke", "black")
-        .attr("stroke", function (d) {
-            // TODO:
-            // return extractRegion(graph.nodes[d.source.index]['name']);
-            return 'black';
-        })
+        .attr("stroke", d => color(d.target.name))
         .attr("stroke-opacity", 0.5)
         .attr("stroke-width", d => Math.max(1, d.width));
 
