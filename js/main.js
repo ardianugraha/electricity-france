@@ -351,26 +351,7 @@ function drawSankey() {
     // TODO: Add a year selection field
     // Process consumption data to create links from energy types to consumption regions
     ctx.consRegion.forEach(cons => {
-        // if (cons.year === 2020) {
-
-        //     const normalizedEnergyType = energyTypesMap[cons.energyType];
-        //     // console.log(cons)
-
-        //     // Only add if the energy type exists in our production data
-        //     if (energyTypes.has(normalizedEnergyType)) {
-        //         regions.add("consumption-" + cons.regionName);
-                
-        //         const consumptionValue = parseFloat(cons.nationalConsumptionPercentage);
-                
-        //         if (consumptionValue > 0) {
-        //             links.push({
-        //                 source: normalizedEnergyType,
-        //                 target: "consumption-" + cons.regionName,
-        //                 value: consumptionValue
-        //             });
-        //         }
-        //     }
-        // }
+        // TODO
     });
 
     // Combine and sort unique nodes
@@ -407,9 +388,6 @@ function drawSankey() {
 
     // Color scale for nodes
     const color = d3.scaleOrdinal(d3.schemeCategory10);
-
-    // TODO:
-    // Add margin
 
     // Append links
     svg.append("g")
@@ -454,11 +432,6 @@ function drawSankey() {
     // Adds a title on the nodes.
     node.append("title")
         .text(d => `${d.name}\n${d.value} GWh`);
-
-    // Logging for debugging
-    // console.log("Nodes:", allNodes);
-    // console.log("Links:", links);
-    // console.log("Sankey Links:", sanKeyLinks);
 };
 
 function drawRegression() {
