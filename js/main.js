@@ -179,24 +179,25 @@ function drawMap() {
 
     ctx.LFmap.setView([46.603354, 1.888334], 6); // Center on France with a zoom level of 6
 
-    // const regionLayer = L.geoJson(ctx.mapRegions, {
-    //     style: style,
-    //     onEachFeature: function(feature, layer) {
-    //         layer.on({
-    //             mouseover: function(e) {
-    //                 if (!isMouseOverSite) {
-    //                     highlightFeature(e);
-    //                 }
-    //             },
-    //             mouseout: function(e) {
-    //                 resetHighlight(e);
-    //             },
-    //             click: function(e) {
-    //                 zoomToFeature(e);
-    //             }
-    //         });
-    //     }
-    // }).addTo(ctx.LFmap);
+    const regionLayer = L.geoJson(ctx.mapRegions, {
+        style: style,
+        onEachFeature: function(feature, layer) {
+            layer.on({
+                mouseover: function(e) {
+                    highlightFeature(e);
+                    // if (!isMouseOverSite) {
+                    //     highlightFeature(e);
+                    // }
+                },
+                mouseout: function(e) {
+                    resetHighlight(e);
+                },
+                click: function(e) {
+                    zoomToFeature(e);
+                }
+            });
+        }
+    }).addTo(ctx.LFmap);
 
     L.svg().addTo(ctx.LFmap);
     let svgEl = d3.select("#mapContainer").select("svg");
@@ -233,9 +234,9 @@ function highlightFeature(e) {
         opacity: 1,
         color: "#666",
         dashArray: '3',
-        fillOpacity: 0.3
+        fillOpacity: 0.7
     });
-    layer.bringToFront();
+    // layer.bringToFront();
 };
 
 function resetHighlight(e) {
@@ -248,17 +249,17 @@ function resetHighlight(e) {
         dashArray: '3',
         fillOpacity: 0.3
     });
-    layer.bringToBack();
+    // layer.bringToBack();
 };
 
 function plotSites() {
     const groupedSites = groupSitesByCommune(ctx.sitesMap);
 
-    filteredSites = ctx.sitesMap.filter(d => d.sum_max_power_installed >= 0); // only plot power >= 1 GWh
+    filteredSites = ctx.sitesMap.filter(d => d.sum_max_power_installed >= 1); // only plot power >= 1 GWh
     let maxPowerExt = d3.extent(ctx.sitesMap, d => d.sum_max_power_installed);
     ctx.rScale = d3.scalePow()
         .domain(maxPowerExt)
-        .range([1, 25]);
+        .range([2, 25]);
     let siteSelection = d3.select("g#sites")
         .selectAll("circle")
         .data(filteredSites);
