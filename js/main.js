@@ -339,12 +339,12 @@ function drawSankey() {
 
     // Normalize energy type
     const energyTypesMap = {
-        'nucléaire': 'nuclear',
-        'thermique fossile': 'thermique',
-        'hydraulique': 'hydraulique',
-        'éolien': 'eolienne',
-        'solaire': 'solaire',
-        'bioénergies': 'bioenergie'
+        'nucléaire': ctx.energyType[0],
+        'thermique fossile': ctx.energyType[7],
+        'hydraulique': ctx.energyType[1],
+        'éolien': ctx.energyType[2],
+        'solaire': ctx.energyType[3],
+        'bioénergies': ctx.energyType[4]
     };
 
     // TODO: Fix consumption!
