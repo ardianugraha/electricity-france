@@ -179,6 +179,7 @@ function drawMap() {
 
     ctx.LFmap.setView([46.603354, 1.888334], 6); // Center on France with a zoom level of 6
 
+    // ctx.clicked = false;
     const regionLayer = L.geoJson(ctx.mapRegions, {
         style: style,
         onEachFeature: function(feature, layer) {
@@ -193,7 +194,14 @@ function drawMap() {
                     resetHighlight(e);
                 },
                 click: function(e) {
-                    zoomToFeature(e);
+                    if (!ctx.clicked || e.target.feature.properties.region_code !== ctx.zoomedRegion) {
+                        zoomToFeature(e);
+                        ctx.clicked = true;
+                        ctx.zoomedRegion = e.target.feature.properties.region_code
+                    } else {
+                        zoomOutMap(e);
+                        ctx.clicked = false
+                    }
                 }
             });
         }
@@ -221,22 +229,30 @@ function style(feature) {
 
 function zoomToFeature(e) {
     const layer = e.target;
-    ctx.selectedRegionCode = e.target.feature.properties.region_code;
+    ctx.selectedRegionCode = layer.feature.properties.region_code;
     // console.log(ctx.selectedRegionCode);
     ctx.LFmap.fitBounds(layer.getBounds());
 };
 
-function highlightFeature(e) {
+function zoomOutMap(e) {
+    const layer = e.target;
+    ctx.selectedRegionCode = layer.feature.properties.region_code;
+    // console.log(ctx.selectedRegionCode);
+    // ctx.LFmap.fitBounds(layer.getBounds());
+    ctx.LFmap.setView([46.603354, 1.888334], 6);
+};
+
+function highlightFeature(e, data) {
     const layer = e.target;
     layer.setStyle({
         fillColor: "lightyellow",
-        weight: 2,
+        weight: 4,
         opacity: 1,
         color: "#666",
-        dashArray: '3',
-        fillOpacity: 0.7
+        dashArray: '5',
+        fillOpacity: 0.8
     });
-    // layer.bringToFront();
+    showRegionTooltip(e.target.feature.properties.region_code, e.pageX, e.pageY);
 };
 
 function resetHighlight(e) {
@@ -249,7 +265,7 @@ function resetHighlight(e) {
         dashArray: '3',
         fillOpacity: 0.3
     });
-    // layer.bringToBack();
+    hideTooltip();
 };
 
 function plotSites() {

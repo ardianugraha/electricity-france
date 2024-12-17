@@ -98,11 +98,20 @@ function showCommuneTooltip(commune, siteDetails, x, y) {
         .style("top", `${y + 10}px`)
         .html(`
             <strong>${commune}</strong>
-            <div style="margin-top: 3px;">${siteDetails}</div>
+            <div style="margin-top: 2px;">${siteDetails}</div>
         `)
         .style("visibility", "visible");
 };
 
+function showRegionTooltip(region, x, y) {
+    const tooltip = d3.select("#tooltip");
+    tooltip.style("left", `${x + 10}px`)
+        .style("top", `${y + 10}px`)
+        .html(`
+            <strong>${ctx.regionLookup.codeToName[region]}</strong>
+        `)
+        .style("visibility", "visible");
+};
 function hideTooltip() {
     const tooltip = d3.selectAll("#tooltip");
     tooltip.style("visibility", "hidden");
