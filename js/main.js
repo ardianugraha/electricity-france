@@ -110,7 +110,7 @@ function loadData() {
                 (+feature.properties.bioenergies || 0)
             )
         }));
-        // console.log("ctx.prodRegion:", ctx.prodRegion);
+        console.log("ctx.prodRegion:", ctx.prodRegion);
 
         /* Prepare generator sites data with long lat */
         ctx.sitesMap = sites.map(row => ({
@@ -160,7 +160,7 @@ function loadData() {
         drawTreeMapSite(ctx.sitesMap, ctx.currentFilters);
         drawTreeMapProd(ctx.prodRegion, ctx.currentFilters);
 
-        drawLineChart();
+        drawLineChart(ctx.prodRegion, ctx.currentFilters);
     }).catch(function (error) {
         console.error("Error loading data:", error);
     });
@@ -593,20 +593,23 @@ function drawTreeMapProd(data, filters) {
         { name: "Bioenergy", field: "bioenergyGWh" }
     ];
 
-    data_2023 = data.filter(d => d.year == 2023);
+    // data_2023 = data.filter(d => d.year == 2023);
     // Split the data into rows based on energy types
-    const splitData = data_2023.flatMap(entry => 
+    ctx.prodRegionFlat = data.flatMap(entry => 
         energyTypes.map(energyType => ({
+            year: entry.year,
             region_code: entry.regionCode,
             region: entry.regionName,
             energy_type: energyType.name,
             prodGWh: entry[energyType.field]
         }))
     );
+    console.log("prod flat:", ctx.prodRegionFlat);
 
-    console.log("split prod:", splitData);
+    data_2023 = ctx.prodRegionFlat.filter(d => d.year == 2023);
+    console.log("2023 prod:", data_2023);
 
-    const filteredData = splitData.filter(d => {
+    const filteredData = data_2023.filter(d => {
         const energyMatch = filters.energyType.length === 0 || filters.energyType.includes(d.energy_type);
         const regionMatch =  filters.region.length === 0 || d.region_code == ctx.regionLookup.nameToCode[filters.region];
         return energyMatch && regionMatch;
@@ -626,27 +629,27 @@ function drawTreeMapProd(data, filters) {
             };
         })
     };
-    console.log("hier", hierarchyData);
+    // console.log("hier", hierarchyData);
 
     drawTreeMap(hierarchyData, elementId);
 };
 
-function drawLineChart(currentFilters) {
+function drawLineChart(data, filter) {
     
-    const width = 928;
-    const height = 600;
+    const width = 600;
+    const height = 400;
     const marginTop = 20;
     const marginRight = 20;
-    const marginBottom = 30;
+    const marginBottom = 50;
     const marginLeft = 30;
 
     // Create the positional scales.
     const x = d3.scaleLinear()
-        .domain(d3.extent(ctx.prodRegion, d => d.year))
+        .domain(d3.extent(data, d => d.year))
         .range([marginLeft, width - marginRight]);
 
     const y = d3.scaleLinear()
-        .domain([0, d3.max(ctx.prodRegion, d => d.totalGWh)]).nice()
+        .domain([0, d3.max(data, d => d.totalGWh)]).nice()
         .range([height - marginBottom, marginTop]);
 
     const svg = d3.select("#lineChart")
@@ -659,7 +662,13 @@ function drawLineChart(currentFilters) {
     // Add the horizontal axis.
     svg.append("g")
         .attr("transform", `translate(0,${height - marginBottom})`)
-        .call(d3.axisBottom(x).ticks(width / 80).tickSizeOuter(0));
+        .call(d3.axisBottom(x).ticks(width / 40).tickSizeOuter(0))
+        .append("text")
+            .attr("x", (width - marginLeft - marginRight) / 2 + marginLeft)
+            .attr("y", 30) // Position the title below the axis
+            .attr("fill", "currentColor")
+            .attr("text-anchor", "middle")
+            .text("Year");
 
     // Add the vertical axis.
     svg.append("g")
@@ -676,16 +685,49 @@ function drawLineChart(currentFilters) {
             .attr("text-anchor", "start")
             .text("↑ Total Production (GWh)"));
 
-    ctx.prodRegion.sort((a, b) => d3.ascending(a.year, b.year));
+    data.sort((a, b) => d3.ascending(a.year, b.year));
+    // Process the data to create stacks
+    const stack = d3.stack()
+        .keys(["nuclearGWh", "nonRenewableGWh", "hydroGWh", "windGWh", "solarGWh", "bioenergyGWh"])
+        .value((d, key) => Math.max(d[key], 1)) // Replace 0 or negative values with 1
+        .order(d3.stackOrderNone)
+        .offset(d3.stackOffsetNone);
+
+    const color = d3.scaleOrdinal()
+        .domain(["nuclearGWh", "nonRenewableGWh", "hydroGWh", "windGWh", "solarGWh", "bioenergyGWh"])
+        .range(["#D32F2F", "black", "#4682B4", "#87CEEB", "#e8c33c", "#6B3F2A"]);
+    
+    const area = d3.area()
+        .x(d => x(d.data.year))  // x-coordinate from the points
+        .y0(d => y(d[0]))        // bottom of the area (baseline)
+        .y1(d => y(d[1]));       // y-coordinate (heig
+
+    // Prepare the data for each region.
+    const regions = d3.group(data, d => d.regionName);
+
+    // Add stacked areas for all regions (but hidden initially)
+    const areaPaths = svg.selectAll(".area")
+        .data(regions)
+        .join("g")
+        .attr("class", "region-area")
+        .style("visibility", "hidden")  // Hide areas initially
+        .selectAll("path")
+        .data(d => stack(d[1])) // Create stacks for each region's data
+        .join("path")
+        .attr("class", "area")
+        .attr("d", area)
+        .attr("fill", d => color(d.key))
+        .attr("opacity", 0.7);
 
     // Compute the points in pixel space as [x, y, z], where z is the name of the series.
-    const points = ctx.prodRegion.map((d) => [x(d.year), y(d.totalGWh), d.regionName]);
+    const points = data.map((d) => [x(d.year), y(d.totalGWh), d.regionName, d.totalGWh, d.year]);
 
     // Group the points by series.
     const groups = d3.rollup(points, v => Object.assign(v, {z: v[0][2]}), d => d[2]);
 
     // Draw the lines.
     const line = d3.line();
+
     const path = svg.append("g")
         .attr("fill", "none")
         .attr("stroke", "steelblue")
@@ -697,6 +739,24 @@ function drawLineChart(currentFilters) {
         .join("path")
         .style("mix-blend-mode", "multiply")
         .attr("d", line);
+    console.log(groups.values());
+    groups.values().forEach(group => {
+        console.log("Region:", group[0][2]);
+        console.log("Last Point:", group[group.length - 1]);
+    });
+ // Add region labels (names)
+    const labels = svg.selectAll(".region-label")
+        .data(groups.values())
+        .join("text")
+        .attr("class", "region-label")
+        .attr("x", d => d[d.length - 1][0]) // Position the label at the end of the line
+        .attr("y", d => d[d.length - 1][1]) // Position based on the last point's y-value
+        .attr("dx", 5)  
+        .attr("fill", "black")
+        .attr("text-anchor", "start")
+        .style("font-size", "10px")
+        .text(d => d[0][2]); // Region name from the data
+    
     // Add an invisible layer for the interactive tip.
     const dot = svg.append("g")
         .attr("display", "none");
@@ -713,35 +773,50 @@ function drawLineChart(currentFilters) {
         .on("pointermove", pointermoved)
         .on("pointerleave", pointerleft)
         .on("touchstart", event => event.preventDefault());
+        // Color legend
+    // const legend = svg.append("g")
+    //     .attr("transform", `translate(${width - marginRight + 10}, 20)`); // Adjust position for legend
 
-    return svg.node();
+    // const legendItem = legend.selectAll(".legend-item")
+    //     .data(color.domain())
+    //     .join("g")
+    //     .attr("class", "legend-item")
+    //     .attr("transform", (d, i) => `translate(0, ${i * 20})`);
+
+    // legendItem.append("rect")
+    //     .attr("width", 18)
+    //     .attr("height", 18)
+    //     .attr("fill", color)
+    //     .attr("opacity", 0.7);
+
+    // legendItem.append("text")
+    //     .attr("x", 24)
+    //     .attr("y", 9)
+    //     .attr("dy", "0.35em")
+    //     .text(d => d.charAt(0).toUpperCase() + d.slice(1));  // Capitalize the first letter of the energy type
+
+    // return svg.node();
 
     function pointermoved(event) {
         const [xm, ym] = d3.pointer(event);
         const i = d3.leastIndex(points, ([x, y]) => Math.hypot(x - xm, y - ym));
-        const [x, y, k] = points[i];
-        // const hoveredYear = xScale.invert(x);
-        const dataPoint = ctx.prodRegion.find(d => d.regionName === k && d.year === y);
-        console.log(dataPoint);
-        // const dataPoint = ctx.prodRegion.find(d => d.regionName === k && x === xScale(d.year));
-
-        path.style("stroke", ({z}) => z === k ? null : "#ddd").filter(({z}) => z === k).raise();
+        const [x, y, regionName, totalGWh, year] = points[i];
+        
+        areaPaths.style("visibility", d => (d[0].data.regionName === regionName ? "visible" : "hidden"));
+        
+        path.style("stroke", ({z}) => z === regionName ? null : "#ddd").filter(({z}) => z === regionName).raise();
         dot.attr("transform", `translate(${x},${y})`);
-        dot.select("text").text(`${k}`);
-        // svg.property("value", ctx.prodRegion.totalGWh[i]).dispatch("input", {bubbles: true});
-        // svg.property("value", dataPoint ? dataPoint.totalGWh : null).dispatch("input", {bubbles: true});
-
+        dot.select("text").text(`${regionName}: ${totalGWh.toFixed(2)} GWh (${year})`);    
     }
 
     function pointerentered() {
-        path.style("mix-blend-mode", null).style("stroke", "#ddd");
+        path.style("mix-blend-mode", null).style("stroke", "#ddd").style("opacity", 0.5);
         dot.attr("display", null);
     }
 
     function pointerleft() {
-        path.style("mix-blend-mode", "multiply").style("stroke", null);
+        path.style("mix-blend-mode", "multiply").style("stroke", null).style("opacity", 1);
         dot.attr("display", "none");
-        svg.node().value = null;
-        svg.dispatch("input", {bubbles: true});
+        areaPaths.style("visibility", "hidden");
     }
 };
