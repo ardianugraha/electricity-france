@@ -3,6 +3,7 @@ const ctx = {
     // MAP_W: 1024,
     // MAP_H: 1024,
     SANKEY_W: 1200, SANKEY_H: 700, SANKEY_MARGIN: {top: 10, right: 10, bottom: 10, left: 10},
+    SCATTER_W:650, SCATTER_H: 600, SCATTER_MARGIN: {top: 20, right: 100, bottom: 60, left: 50},
     ATTRIB: '<a href="https://linkedin.com/in/ardianugraha">Nugraha</a> & <a href="https://linkedin.com/in/matin-zivdar">Zivdar</a> (<a href="https://www.enseignement.polytechnique.fr/informatique/CSC_51052/">CSC_51052_EP</a>) | Map &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, Data &copy; <a href="https://data.enedis.fr">Enedis</a> & <a href="https://odre.opendatasoft.com/">ODRE</a>',
     LFmap: null,
     energyType: [
@@ -531,9 +532,9 @@ function drawScatter() {
     d3.select("#scatterPlot").selectAll("*").remove();
 
     // Set up dimensions and margins
-    const width = 500;  // Reduced width
-    const height = 400; // Reduced height
-    const margin = { top: 50, right: 100, bottom: 50, left: 80 }; // Adjusted margins to fit legend
+    const width = ctx.SCATTER_W;  // Reduced width
+    const height = ctx.SCATTER_H; // Reduced height
+    const margin = ctx.SCATTER_MARGIN; // Adjusted margins to fit legend
 
     // Create SVG
     const svg = d3.select("#scatterPlot")
@@ -579,7 +580,7 @@ function drawScatter() {
         .call(d3.axisLeft(yScale).ticks(10, "~s")) // Logarithmic ticks
         .append("text")
         .attr("transform", "rotate(-90)")
-        .attr("y", -70)
+        .attr("y", -40)
         .attr("x", -height / 2)
         .attr("fill", "black")
         .text("Installed Power (GW, Log Scale)");
@@ -593,7 +594,7 @@ function drawScatter() {
         .attr("cx", d => xScale(d.energy_type) + xScale.bandwidth() / 2 + (Math.random() - 0.5) * xScale.bandwidth() * 0.5)
         .attr("cy", d => yScale(d.sum_max_power_installed))
         .attr("r", 1) // Fixed size
-        .attr("fill", d => colorScale(d.energy_type))
+        .attr("fill", d => ctx.colorMapping[d.energy_type])
         .attr("opacity", 0.7)
         .append("title")
         .text(d => `${d.commune} - ${d.energy_type}\nInstalled Power: ${d.sum_max_power_installed.toFixed(2)} GW`);
@@ -608,7 +609,7 @@ function drawScatter() {
 
     legend.append("circle")
         .attr("r", 5)
-        .attr("fill", d => colorScale(d));
+        .attr("fill", d => ctx.colorMapping[d]);
 
     legend.append("text")
         .attr("x", 10)
