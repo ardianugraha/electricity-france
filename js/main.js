@@ -374,7 +374,6 @@ function drawSankey() {
         if (cons.year === 2020) {
             regions.add("consumption-" + cons.regionName);
             if (cons.filiere_consGWh > 0) {
-                console.log(cons);
                 links.push({
                     source: cons.energyType,
                     target: "consumption-" + cons.regionName,
@@ -385,7 +384,8 @@ function drawSankey() {
     });
 
     // Combine and sort unique nodes
-    const allNodes = Array.from(new Set([...regions, ...ctx.energyType]));
+    // using slice to exclude 'Marine Energy', 'Geothermal'
+    const allNodes = Array.from(new Set([...regions, ...ctx.energyType.slice(0, -2)]));
 
     // Create node index map
     const nodeIndices = new Map(allNodes.map((node, i) => [node, i]));
