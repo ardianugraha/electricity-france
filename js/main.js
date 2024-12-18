@@ -370,8 +370,18 @@ function drawSankey() {
     // TODO: Fix consumption!
     // TODO: Add a year selection field
     // Process consumption data to create links from energy types to consumption regions
-    ctx.consRegion.forEach(cons => {
-        // TODO
+    ctx.consRegionPart.forEach(cons => {
+        if (cons.year === 2020) {
+            regions.add("consumption-" + cons.regionName);
+            if (cons.filiere_consGWh > 0) {
+                console.log(cons);
+                links.push({
+                    source: cons.energyType,
+                    target: "consumption-" + cons.regionName,
+                    value: cons.filiere_consGWh
+                });
+            }
+        }
     });
 
     // Combine and sort unique nodes
