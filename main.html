@@ -59,7 +59,7 @@
         }
 
         .row {
-            flex: 0 0 50%; /* Fixed width: Takes 25% of the container */
+            flex: 0 0 10%; /* Fixed width: Takes 25% of the container */
             display: flex;
             flex-direction: column;
             justify-content: flex-start; /* Optional: space between items */
@@ -163,13 +163,6 @@
             z-index: 9999; /* Ensure it's on top of other elements */
         }
 
-        #all-viz {
-            flex: 1; /* Allow it to take the remaining space */
-            display: flex;
-            flex-direction: column; /* Stack items vertically */
-            /* gap: 10px; Space between the figures */
-        }
-
         #region-select {
             font: inherit;
             font-size: 2;
@@ -196,15 +189,17 @@
                 <div id="mapContainer">France Metropolitan</div>
                 <div id="tooltip"></div>
                 <div id="tooltipRegion"></div>
-                <div id="scatterPlot"></div>
             </div>
             <!-- add div(s) here for each figure -->
-            <div id="all-viz", class="row">
+            <div id="second", class="row">
                 <div id="treeMapSite" class="item">Maximum Production Capacity Installed</div>
                 <div id="treeMapProd" class="item">Actual Production</div>
 
-                <div id="lineChart"></div>
+            </div>
+            <div id="third", class="row">
+                <div id="scatterPlot"></div>
                 <div id="sankeyContainer" class="item">Actual Production and Consumption</div>
+                <div id="lineChart"></div>
             </div>
         </main>
         <footer></footer>

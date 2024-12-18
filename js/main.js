@@ -460,9 +460,9 @@ function drawScatter() {
     d3.select("#scatterPlot").selectAll("*").remove();
 
     // Set up dimensions and margins
-    const width = 600;  // Reduced width
+    const width = 500;  // Reduced width
     const height = 400; // Reduced height
-    const margin = { top: 50, right: 200, bottom: 50, left: 80 }; // Adjusted margins to fit legend
+    const margin = { top: 50, right: 100, bottom: 50, left: 80 }; // Adjusted margins to fit legend
 
     // Create SVG
     const svg = d3.select("#scatterPlot")
