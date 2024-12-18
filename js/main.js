@@ -2,7 +2,7 @@
 const ctx = {
     // MAP_W: 1024,
     // MAP_H: 1024,
-    SANKEY_W: 700, SANKEY_H: 700,
+    SANKEY_W: 700, SANKEY_H: 700, SANKEY_MARGIN: {top: 10, right: 10, bottom: 10, left: 10},
     ATTRIB: '<a href="https://linkedin.com/in/ardianugraha">Nugraha</a> & <a href="https://linkedin.com/in/matin-zivdar">Zivdar</a> (<a href="https://www.enseignement.polytechnique.fr/informatique/CSC_51052/">CSC_51052_EP</a>) | Map &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, Data &copy; <a href="https://data.enedis.fr">Enedis</a> & <a href="https://odre.opendatasoft.com/">ODRE</a>',
     LFmap: null,
     energyType: [
@@ -155,6 +155,7 @@ function loadData() {
         // Call visualization functions
         // For example: drawMap(svgEl, regionalData);
         drawSankey(ctx.prodRegion, ctx.consRegionPart);
+        drawScatter();
 
         drawTreeMapSite(ctx.sitesMap, ctx.currentFilters);
         drawTreeMapProd(ctx.prodRegion, ctx.currentFilters);
@@ -313,78 +314,69 @@ function plotSites() {
     siteSelection.exit().remove();
 };
 
-function drawSankey(regionProductionData, regionalConsumptionData) {
+function drawSankey() {
     // TODO: Implement Sankey diagram drawing
     console.log("Drawing Sankey diagram");
     // Prepare data for Sankey diagram
     const sankey = d3.sankey()
-        .nodeWidth(15)
+        .nodeWidth(ctx.SANKEY_W / 5)
         .nodePadding(10)
         .size([ctx.SANKEY_W, ctx.SANKEY_H]);
 
     // Collect unique regions, energy types, and links
     const regions = new Set();
-    const energyTypes = new Set(["nuclear", "thermique", "hydraulique", "eolienne", "solaire", "bioenergie"]);
     const links = [];
 
     // Process production data to create first set of links
     const productionByRegionAndType = {};
 
-    regionProductionData.forEach(prod => {
+    ctx.prodRegion.forEach(prod => {
         if (prod.year === 2020) {
             regions.add("production-" + prod.regionName);
 
-            energyTypes.forEach(field => {
-                value = parseFloat(prod[field]);
-                // Create links from production regions to energy types
-                if (value > 0) {
-                    links.push({
-                        source: "production-" + prod.regionName,
-                        target: field,
-                        value: value
-                    });
+            for (const [key, value] of Object.entries(prod)) {
+                if (key.includes('GWh') & findStr(ctx.energyType, key.slice(0, -3))) {
+                    // Create links from production regions to energy types
+                    if (value > 0) {
+                        links.push({
+                            source: "production-" + prod.regionName,
+                            target: capitalizeFirstLetter(key.slice(0, -3)),
+                            value: value
+                        });
+                    }
+                } else if (key == "nonRenewableGWh") {
+                    // Create links from production regions to energy types
+                    if (value > 0) {
+                        links.push({
+                            source: "production-" + prod.regionName,
+                            target: "Non-renewable",
+                            value: value
+                        });
+                    }
                 }
-            });
+            };
         }
     });
 
     // Normalize energy type
     const energyTypesMap = {
-        'nucléaire': 'nuclear',
-        'thermique fossile': 'thermique',
-        'hydraulique': 'hydraulique',
-        'éolien': 'eolienne',
-        'solaire': 'solaire',
-        'bioénergies': 'bioenergie'
+        'nucléaire': ctx.energyType[0],
+        'thermique fossile': ctx.energyType[7],
+        'hydraulique': ctx.energyType[1],
+        'éolien': ctx.energyType[2],
+        'solaire': ctx.energyType[3],
+        'bioénergies': ctx.energyType[4]
     };
 
     // TODO: Fix consumption!
     // TODO: Add a year selection field
     // Process consumption data to create links from energy types to consumption regions
-    regionalConsumptionData.forEach(cons => {
-        if (cons.year === 2020) {
-
-            const normalizedEnergyType = energyTypesMap[cons.energyType];
-
-            // Only add if the energy type exists in our production data
-            if (energyTypes.has(normalizedEnergyType)) {
-                regions.add("consumption-" + cons.regionName);
-                
-                const consumptionValue = parseFloat(cons.nationalConsumptionPercentage);
-                
-                if (consumptionValue > 0) {
-                    links.push({
-                        source: normalizedEnergyType,
-                        target: "consumption-" + cons.regionName,
-                        value: consumptionValue
-                    });
-                }
-            }
-        }
+    ctx.consRegion.forEach(cons => {
+        // TODO
     });
 
     // Combine and sort unique nodes
-    const allNodes = Array.from(new Set([...regions, ...energyTypes]));
+    const allNodes = Array.from(new Set([...regions, ...ctx.energyType]));
 
     // Create node index map
     const nodeIndices = new Map(allNodes.map((node, i) => [node, i]));
@@ -406,22 +398,17 @@ function drawSankey(regionProductionData, regionalConsumptionData) {
         links: sanKeyLinks
     });
 
-    console.log(graph)
-
     // Remove any existing SVG first
     d3.select("#sankeyContainer").selectAll("*").remove();
 
     // Create SVG dynamically
     const svg = d3.select("#sankeyContainer")
         .append("svg")
-        .attr("width", ctx.SANKEY_W)
-        .attr("height", ctx.SANKEY_H);
+        .attr("width", ctx.SANKEY_W + ctx.SANKEY_MARGIN.left + ctx.SANKEY_MARGIN.right)
+        .attr("height", ctx.SANKEY_H + ctx.SANKEY_MARGIN.top + ctx.SANKEY_MARGIN.bottom);
 
     // Color scale for nodes
     const color = d3.scaleOrdinal(d3.schemeCategory10);
-
-    // TODO:
-    // Add margin
 
     // Append links
     svg.append("g")
@@ -432,11 +419,7 @@ function drawSankey(regionProductionData, regionalConsumptionData) {
         .attr("d", d3.sankeyLinkHorizontal())
         .attr("fill", "none")
         .attr("stroke", "black")
-        .attr("stroke", function (d) {
-            // TODO:
-            // return extractRegion(graph.nodes[d.source.index]['name']);
-            return 'black';
-        })
+        .attr("stroke", d => color(d.target.name))
         .attr("stroke-opacity", 0.5)
         .attr("stroke-width", d => Math.max(1, d.width));
 
@@ -461,17 +444,108 @@ function drawSankey(regionProductionData, regionalConsumptionData) {
         .enter().append("text")
         .attr("x", d => (d.x0 + d.x1) / 2)
         .attr("y", d => (d.y0 + d.y1) / 2)
-        .attr("dy", "1.35em")
+        .attr("dy", "0.35em")
         .attr("text-anchor", "middle")
         .text(d => extractRegion(d.name))
         .attr("font-size", "10px")
         .attr("fill", "black");
 
-    // Logging for debugging
-    // console.log("Nodes:", allNodes);
-    // console.log("Links:", links);
-    // console.log("Sankey Links:", sanKeyLinks);
+    // Adds a title on the nodes.
+    node.append("title")
+        .text(d => `${d.name}\n${d.value} GWh`);
 };
+
+function drawScatter() {
+    // Clear any existing scatter plot
+    d3.select("#scatterPlot").selectAll("*").remove();
+
+    // Set up dimensions and margins
+    const width = 600;  // Reduced width
+    const height = 400; // Reduced height
+    const margin = { top: 50, right: 200, bottom: 50, left: 80 }; // Adjusted margins to fit legend
+
+    // Create SVG
+    const svg = d3.select("#scatterPlot")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Prepare data
+    const filteredSites = ctx.sitesMap.filter(site =>
+        site.long && site.lat && site.sum_max_power_installed > 1
+    );
+
+    // X-axis: Energy Type (categorical)
+    const energyTypes = [...new Set(filteredSites.map(d => d.energy_type))];
+    const xScale = d3.scaleBand()
+        .domain(energyTypes)
+        .range([0, width])
+        .padding(0.1);
+
+    // Y-axis: Installed Power (logarithmic)
+    const yScale = d3.scaleLog()
+        .domain([1, d3.max(filteredSites, d => d.sum_max_power_installed)]) // Minimum value set to 1 for log scale
+        .range([height, 0])
+        .nice();
+
+    // Color scale for energy types
+    const colorScale = d3.scaleOrdinal()
+        .domain(energyTypes)
+        .range(d3.schemeCategory10);
+
+    // Add X-axis (Energy Type)
+    svg.append("g")
+        .attr("transform", `translate(0,${height})`)
+        .call(d3.axisBottom(xScale))
+        .selectAll("text")
+        .attr("transform", "rotate(-45)")
+        .style("text-anchor", "end");
+
+    // Add Y-axis (Installed Power)
+    svg.append("g")
+        .call(d3.axisLeft(yScale).ticks(10, "~s")) // Logarithmic ticks
+        .append("text")
+        .attr("transform", "rotate(-90)")
+        .attr("y", -70)
+        .attr("x", -height / 2)
+        .attr("fill", "black")
+        .text("Installed Power (GW, Log Scale)");
+
+    // Add scatter points
+    svg.selectAll(".site-point")
+        .data(filteredSites)
+        .enter()
+        .append("circle")
+        .attr("class", "site-point")
+        .attr("cx", d => xScale(d.energy_type) + xScale.bandwidth() / 2 + (Math.random() - 0.5) * xScale.bandwidth() * 0.5)
+        .attr("cy", d => yScale(d.sum_max_power_installed))
+        .attr("r", 1) // Fixed size
+        .attr("fill", d => colorScale(d.energy_type))
+        .attr("opacity", 0.7)
+        .append("title")
+        .text(d => `${d.commune} - ${d.energy_type}\nInstalled Power: ${d.sum_max_power_installed.toFixed(2)} GW`);
+
+    // Add legend
+    const legend = svg.selectAll(".legend")
+        .data(energyTypes)
+        .enter()
+        .append("g")
+        .attr("class", "legend")
+        .attr("transform", (d, i) => `translate(${width + 20},${i * 20})`); // Keep the legend aligned to the right
+
+    legend.append("circle")
+        .attr("r", 5)
+        .attr("fill", d => colorScale(d));
+
+    legend.append("text")
+        .attr("x", 10)
+        .attr("y", 5)
+        .text(d => d)
+        .attr("font-size", "10px")
+        .attr("text-anchor", "start");
+}
 
 function drawRegression() {
 

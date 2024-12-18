@@ -1,7 +1,10 @@
 // TODO
 // define functions here
 function extractRegion(str) {
-    return str.split('-').pop();
+    if (str.includes("-")) {
+        return str.substring(str.indexOf("-") + 1);
+    }
+    return str;
   }
 
 const createFilter = (key, param, container) => {
@@ -118,6 +121,12 @@ function hideTooltip() {
     const tooltip = d3.selectAll("#tooltip");
     tooltip.style("visibility", "hidden");
 };
+
+const findStr = (arr, str) => arr.some(e => e.toLowerCase().search(str.toLowerCase()) !== -1)
+
+function capitalizeFirstLetter(val) {
+    return String(val).charAt(0).toUpperCase() + String(val).slice(1);
+}
 
 function handleRegionClick(regionCode) {
     const regionName = ctx.regionLookup.codeToName[regionCode];
