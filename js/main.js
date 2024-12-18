@@ -50,7 +50,7 @@ function loadData() {
     const promise_files = [
         d3.json("datasets/prod-region-annuelle-filiere.geojson"),
         d3.csv("datasets/registre-national-installation-production-stockage-electricite grouped.csv"),
-        d3.text("datasets/part-regionale-consommation-nationale-couverte-par-filiere.csv").then(text => semicolonCSV.parse(text)),
+        d3.csv("datasets/part-regionale-consommation-nationale-couverte-par-filiere copy.csv"),
         d3.text("datasets/conso-nette-regionale.csv").then(text => semicolonCSV.parse(text))
     ];
 
@@ -138,8 +138,7 @@ function loadData() {
             regionName: d["Région"],
             energyType: d["Filière"],
             nationalConsumptionPercentage: parseFloat(d["Part de la consommation nationale couverte (%)"]),
-            geoShape: JSON.parse(d["Géo-shape de la région"]),
-            geoPoint: d["Géo-point de la région"].split(',').map(Number)
+            filiere_consGWh: parseFloat(d["filiere_consGWh"])
         }));
 
         ctx.consRegion = cons_region.map(d => ({
