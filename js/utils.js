@@ -1,7 +1,7 @@
 // TODO
 // define functions here
 function extractRegion(str) {
-    if (str.includes("-")) {
+    if (str.includes("-") & (str.includes("production") || str.includes("consumption"))) {
         return str.substring(str.indexOf("-") + 1);
     }
     return str;
