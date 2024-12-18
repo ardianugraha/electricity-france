@@ -31,7 +31,9 @@ const ctx = {
     },
     currentFilters: {
         energyType: [],
-        region: []
+        region: [],
+        minPower: null,
+        maxPower: null
     }
 };
 
@@ -151,6 +153,8 @@ function loadData() {
 
         ctx.energyType.forEach(type => createFilter("energyType", type, energyTypeContainer));
         populateRegionDropdown(ctx.mapRegions);
+        initializeRangeControls();
+
         drawMap();
         // Call visualization functions
         // For example: drawMap(svgEl, regionalData);
@@ -170,7 +174,7 @@ function drawMap() {
     //TODO
     // draw France map with its regions
     ctx.LFmap = L.map('mapContainer', {
-        minZoom: 5, // Minimum zoom level to avoid zooming too far out
+        minZoom: 6, // Minimum zoom level to avoid zooming too far out
         maxZoom: 10, // Maximum zoom level
         maxBoundsViscosity: 1, // Ensures the map sticks within the bounds
     });
@@ -274,8 +278,13 @@ function resetHighlightRegion(e) {
 
 function plotSites() {
     const groupedSites = groupSitesByCommune(ctx.sitesMap);
-
-    filteredSites = ctx.sitesMap.filter(d => d.sum_max_power_installed >= 1); // only plot power >= 1 GWh
+    const filteredSites = ctx.sitesMap.filter(d => 
+        d.sum_max_power_installed >= ctx.currentFilters.minPower &&
+        d.sum_max_power_installed <= ctx.currentFilters.maxPower &&
+        (ctx.currentFilters.energyType.length === 0 || ctx.currentFilters.energyType.includes(d.energy_type)) &&
+        d.sum_max_power_installed >= 1
+    );
+    // filteredSites = ctx.sitesMap.filter(d => d.sum_max_power_installed >= 1); // for better visualization sites with capacity < 1 GW are hidden
     let maxPowerExt = d3.extent(ctx.sitesMap, d => d.sum_max_power_installed);
     ctx.rScale = d3.scalePow()
         .domain(maxPowerExt)
@@ -285,33 +294,44 @@ function plotSites() {
         .data(filteredSites);
 
     // Enter: Add new circles for sites
-    siteSelection.enter()
-        .append("circle")
-        .attr("cx", d => ctx.LFmap.latLngToLayerPoint([d.lat, d.long]).x)
-        .attr("cy", d => ctx.LFmap.latLngToLayerPoint([d.lat, d.long]).y)
-        .attr("r", d => ctx.rScale(d.sum_max_power_installed))
-        .attr("class", d => d.energy_type.replace(/\s+/g, '-')) // Class based on energy_type
-        .style("fill", d => ctx.colorMapping[d.energy_type])
-        .style("opacity", 0.7)
-        .style("pointer-events", "auto") 
-        .on("mouseover", function(event, d) {
-            const communeSites = groupedSites[d.commune];
-            const siteDetails = communeSites.map(site => `${site.energy_type}: ${site.sum_max_power_installed.toFixed(2)} GW`).join("<br>");
-            showCommuneTooltip(d.commune, siteDetails, event.pageX, event.pageY);
-        })
-        .on("mouseout", hideTooltip)
-        .on("click", function(event, d) {
-            event.stopPropagation();
-            console.log("site clicked:", d);
-        });
+    siteSelection.join(
+        enter => enter.append("circle")
+            .attr("cx", d => ctx.LFmap.latLngToLayerPoint([d.lat, d.long]).x)
+            .attr("cy", d => ctx.LFmap.latLngToLayerPoint([d.lat, d.long]).y)
+            .attr("r", d => ctx.rScale(d.sum_max_power_installed))
+            .attr("class", d => d.energy_type.replace(/\s+/g, '-'))
+            .style("fill", d => ctx.colorMapping[d.energy_type])
+            // .style("opacity", 0.7)
+            .style("opacity", d => filteredSites.includes(d) ? 0.7 : 0) // Show only filtered sites
+            .style("pointer-events", "auto") 
+            .on("mouseover", function(event, d) {
+                const communeSites = groupedSites[d.commune];
+                const siteDetails = communeSites.map(site => `${site.energy_type}: ${site.sum_max_power_installed.toFixed(2)} GW`).join("<br>");
+                showCommuneTooltip(d.commune, siteDetails, event.pageX, event.pageY);
+            })
+            .on("mouseout", hideTooltip)
+            .on("click", function(event, d) {
+                event.stopPropagation();
+                // console.log("site clicked:", d);
+            }),
 
     // Update: Adjust positions and sizes
-    siteSelection
-        .attr("cx", d => ctx.LFmap.latLngToLayerPoint([d.lat, d.long]).x)
-        .attr("cy", d => ctx.LFmap.latLngToLayerPoint([d.lat, d.long]).y)
-        .attr("r", d => ctx.rScale(d.sum_max_power_installed));
+        update => update
+            .attr("cx", d => ctx.LFmap.latLngToLayerPoint([d.lat, d.long]).x)
+            .attr("cy", d => ctx.LFmap.latLngToLayerPoint([d.lat, d.long]).y)
+            .attr("r", d => ctx.rScale(d.sum_max_power_installed))
+            .style("fill", d => ctx.colorMapping[d.energy_type]) // Ensure color stays consistent
+            .transition()
+            .duration(100)  // 500ms fade transition
+            // .ease(d3.easeCubicInOut)
+            .style("opacity", 0.7),
 
-    siteSelection.exit().remove();
+        exit => exit
+            .transition()
+            .duration(100)
+            .style("opacity", 0)
+            .remove()
+    );
 };
 
 function drawSankey() {
@@ -604,10 +624,10 @@ function drawTreeMapProd(data, filters) {
             prodGWh: entry[energyType.field]
         }))
     );
-    console.log("prod flat:", ctx.prodRegionFlat);
+    // console.log("prod flat:", ctx.prodRegionFlat);
 
     data_2023 = ctx.prodRegionFlat.filter(d => d.year == 2023);
-    console.log("2023 prod:", data_2023);
+    // console.log("2023 prod:", data_2023);
 
     const filteredData = data_2023.filter(d => {
         const energyMatch = filters.energyType.length === 0 || filters.energyType.includes(d.energy_type);
@@ -739,11 +759,11 @@ function drawLineChart(data, filter) {
         .join("path")
         .style("mix-blend-mode", "multiply")
         .attr("d", line);
-    console.log(groups.values());
-    groups.values().forEach(group => {
-        console.log("Region:", group[0][2]);
-        console.log("Last Point:", group[group.length - 1]);
-    });
+    // console.log(groups.values());
+    // groups.values().forEach(group => {
+    //     console.log("Region:", group[0][2]);
+    //     console.log("Last Point:", group[group.length - 1]);
+    // });
  // Add region labels (names)
     const labels = svg.selectAll(".region-label")
         .data(groups.values())

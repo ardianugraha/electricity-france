@@ -70,17 +70,24 @@ function updateFilter(currentFilters) {
         return types;
     }, {}));
 
-    allEnergyTypes.forEach(type => {
-        const normalizedType = type.replace(/\s+/g, '-'); // Normalize type to match the class
-        const shouldShow =
-            currentFilters.energyType.length === 0 || // No filter applied
-            currentFilters.energyType.includes(type);
+    const filteredSites = ctx.sitesMap.filter(d => 
+        d.sum_max_power_installed >= ctx.currentFilters.minPower &&
+        d.sum_max_power_installed <= ctx.currentFilters.maxPower &&
+        (ctx.currentFilters.energyType.length === 0 || ctx.currentFilters.energyType.includes(d.energy_type))
+    );
 
-        // update map
-        d3.selectAll(`circle.${normalizedType}`)
-            .style("opacity", shouldShow ? 0.7 : 0)
-            .style("pointer-events", shouldShow ? "auto" : "none");
-    });
+    // allEnergyTypes.forEach(type => {
+    //     const normalizedType = type.replace(/\s+/g, '-'); // Normalize type to match the class
+    //     const shouldShow =
+    //         currentFilters.energyType.length === 0 || // No filter applied
+    //         currentFilters.energyType.includes(type);
+
+    //     // update map
+    //     d3.selectAll(`circle.${normalizedType}`)
+    //         .style("opacity", shouldShow ? 0.7 : 0)
+    //         .style("pointer-events", shouldShow ? "auto" : "none");
+    // });
+    plotSites();
     // update treemap
     drawTreeMapSite(ctx.sitesMap, currentFilters);
     drawTreeMapProd(ctx.prodRegion, currentFilters);
@@ -202,3 +209,129 @@ function drawTreeMap(hierarchyData, elementId) {
         .attr("fill-opacity", (d, i) => i === 1 ? 0.7 : null)
         .text(d => d);
 };
+
+function controlFromInput(fromSlider, fromInput, toInput, controlSlider) {
+    const [from, to] = getParsed(fromInput, toInput);
+    fillSlider(fromInput, toInput, '#C6C6C6', '#1a1d21', controlSlider);
+    if (from > to) {
+        fromSlider.value = to;
+        fromInput.value = to;
+    } else {
+        fromSlider.value = from;
+    }
+    ctx.currentFilters.minPower = from;
+    console.log(ctx.currentFilters);
+    updateFilter(ctx.currentFilters);
+
+}
+    
+function controlToInput(toSlider, fromInput, toInput, controlSlider) {
+    const [from, to] = getParsed(fromInput, toInput);
+    fillSlider(fromInput, toInput, '#C6C6C6', '#1a1d21', controlSlider);
+    setToggleAccessible(toInput);
+    if (from <= to) {
+        toSlider.value = to;
+        toInput.value = to;
+    } else {
+        toInput.value = from;
+    }
+    ctx.currentFilters.maxPower = to;
+    console.log(ctx.currentFilters);
+    updateFilter(ctx.currentFilters);
+
+}
+
+function controlFromSlider(fromSlider, toSlider, fromInput) {
+    const [from, to] = getParsed(fromSlider, toSlider);
+    fillSlider(fromSlider, toSlider, '#C6C6C6', '#1a1d21', toSlider);
+    if (from > to) {
+        fromSlider.value = to;
+        fromInput.value = to;
+    } else {
+        fromInput.value = from;
+    }
+    ctx.currentFilters.minPower = from;
+    console.log(ctx.currentFilters);
+    updateFilter(ctx.currentFilters);
+
+}
+
+function controlToSlider(fromSlider, toSlider, toInput) {
+    const [from, to] = getParsed(fromSlider, toSlider);
+    fillSlider(fromSlider, toSlider, '#C6C6C6', '#1a1d21', toSlider);
+    setToggleAccessible(toSlider);
+    if (from <= to) {
+        toSlider.value = to;
+        toInput.value = to;
+    } else {
+        toInput.value = from;
+        toSlider.value = from;
+    }
+    ctx.currentFilters.maxPower = to;
+    console.log(ctx.currentFilters);
+    updateFilter(ctx.currentFilters);
+
+}
+
+function getParsed(currentFrom, currentTo) {
+    const from = parseInt(currentFrom.value, 10);
+    const to = parseInt(currentTo.value, 10);
+    return [from, to];
+}
+
+function fillSlider(from, to, sliderColor, rangeColor, controlSlider) {
+    const rangeDistance = to.max-to.min;
+    const fromPosition = from.value - to.min;
+    const toPosition = to.value - to.min;
+    controlSlider.style.background = `linear-gradient(
+        to right,
+        ${sliderColor} 0%,
+        ${sliderColor} ${(fromPosition)/(rangeDistance)*100}%,
+        ${rangeColor} ${((fromPosition)/(rangeDistance))*100}%,
+        ${rangeColor} ${(toPosition)/(rangeDistance)*100}%, 
+        ${sliderColor} ${(toPosition)/(rangeDistance)*100}%, 
+        ${sliderColor} 100%)`;
+}
+
+function setToggleAccessible(currentTarget) {
+    const toSlider = document.querySelector('#toSlider');
+    if (Number(currentTarget.value) <= 0 ) {
+        toSlider.style.zIndex = 2;
+    } else {
+        toSlider.style.zIndex = 0;
+    }
+}
+
+function initializeRangeControls() {
+    const [minCapacity, maxCapacity ] = d3.extent(ctx.sitesMap, d => d.sum_max_power_installed);
+
+    // Select the sliders and inputs
+    const fromSlider = document.querySelector('#fromSlider');
+    const toSlider = document.querySelector('#toSlider');
+    const fromInput = document.querySelector('#fromInput');
+    const toInput = document.querySelector('#toInput');
+
+    // Update the min and max attributes
+    fromSlider.min = fromInput.min = minCapacity;
+    fromSlider.max = fromInput.max = maxCapacity;
+    toSlider.min = toInput.min = minCapacity;
+    toSlider.max = toInput.max = maxCapacity;
+
+    // Set the initial values
+    fromSlider.value = fromInput.value = minCapacity;
+    toSlider.value = toInput.value = maxCapacity;
+
+    // Sync ctx.currentFilters
+    ctx.currentFilters.minPower = minCapacity;
+    ctx.currentFilters.maxPower = maxCapacity;
+
+    // Initialize the slider fill and toggle accessibility
+    fillSlider(fromSlider, toSlider, '#C6C6C6', '#25daa5', toSlider);
+    setToggleAccessible(toSlider);
+
+    // Add event listeners for interactivity
+    fromSlider.oninput = () => controlFromSlider(fromSlider, toSlider, fromInput);
+    toSlider.oninput = () => controlToSlider(fromSlider, toSlider, toInput);
+    fromInput.oninput = () => controlFromInput(fromSlider, fromInput, toInput, toSlider);
+    toInput.oninput = () => controlToInput(toSlider, fromInput, toInput, toSlider);
+}
