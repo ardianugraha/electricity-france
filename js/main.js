@@ -319,7 +319,7 @@ function drawSankey() {
     console.log("Drawing Sankey diagram");
     // Prepare data for Sankey diagram
     const sankey = d3.sankey()
-        .nodeWidth(ctx.SANKEY_W / 5)
+        .nodeWidth(ctx.SANKEY_W / 15)
         .nodePadding(10)
         .size([ctx.SANKEY_W, ctx.SANKEY_H]);
 
