@@ -143,8 +143,8 @@ function drawTreeMap(hierarchyData, elementId) {
     d3.select(elementId).selectAll("*").remove();
 
     // Specify dimensions
-    const width = 600;
-    const height = 300;
+    const width = 300;
+    const height = 280;
   
     // Compute treemap layout
     const root = d3.hierarchy(hierarchyData)

@@ -32,18 +32,13 @@
             display: flex;
             flex-direction: row;
             justify-content: space-between;
-            margin-left: 10px;
-            margin-right: 10px;
-            gap: 10px;
         }
 
         .column-container {
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-            margin-left: 10px;
-            margin-right: 10px;
-            gap: 10px;
+            justify-content: flex-start;
+            margin: 5px; /* Optional: space between items */
         }
 
         .header {
@@ -67,18 +62,9 @@
             text-align: center;
         }
 
-        .row {
-            flex: 0 0 10%; /* Fixed width: Takes 25% of the container */
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start; /* Optional: space between items */
-        }
-
         .item {
             /* background-color: lightgreen; */
-            padding: 10px;
             /* flex: 1; Each item will take equal space */
-            margin: 5px; /* Optional: space between items */
             text-align: left;
         }
 
@@ -195,18 +181,20 @@
                 </div>
             </div> 
             <div class="row-container">
-                <div class="row">
+                <div class="column-container">
                     <div id="mapContainer">France Metropolitan</div>
                     <div id="tooltip"></div>
                     <div id="tooltipRegion"></div>
                 </div>
                 <!-- add div(s) here for each figure -->
-                <div id="second", class="row">
-                    <div id="treeMapSite" class="item">Maximum Production Capacity Installed</div>
-                    <div id="treeMapProd" class="item">Actual Production</div>
+                <div id="second", class="column-container">
+                    <div class="item">Maximum Production Capacity Installed</div>
+                    <div id="treeMapSite" class="item"></div>
+                    <div class="item">Actual Production</div>
+                    <div id="treeMapProd" class="item"></div>
 
                 </div>
-                <div id="third", class="row">
+                <div id="third", class="column-container">
                     <div id="scatterPlot"></div>
                     <div id="sankeyContainer" class="item">Actual Production and Consumption</div>
                     <div id="lineChart"></div>
