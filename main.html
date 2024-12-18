@@ -31,14 +31,14 @@
         .row-container {
             display: flex;
             flex-direction: row;
-            justify-content: space-between;
+            justify-content: flex-start;
         }
 
         .column-container {
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
-            margin: 5px; /* Optional: space between items */
+            margin: 15px; /* Optional: space between items */
         }
 
         .header {
@@ -78,14 +78,12 @@
             display: flex;
             justify-content: center; /* Center the map horizontally */
             align-items: center; /* Center the map vertically if needed */
-            height: 40rem;
-            width: 43rem;
         }
 
         .leaflet-container {
             display: flex;
-            height: 50rem;
-            width: 50rem;
+            height: 680PX;
+            width: 680px;
         }        
 
         .leaflet-container.crosshair-cursor-enabled {
@@ -196,10 +194,10 @@
                 </div>
                 <div id="third", class="column-container">
                     <div id="scatterPlot"></div>
-                    <div id="sankeyContainer" class="item">Actual Production and Consumption</div>
-                    <div id="lineChart"></div>
+                    <!-- <div id="lineChart"></div> -->
                 </div>
             </div>
+            <div id="sankeyContainer" class="item">Actual Production and Consumption</div>
         </main>
         <footer></footer>
     </div>
