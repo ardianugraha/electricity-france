@@ -100,7 +100,7 @@ function loadData() {
             hydroGWh: +feature.properties.production_hydraulique || 0,
             windGWh: +feature.properties.production_eolienne || 0,
             solarGWh: +feature.properties.production_solaire || 0,
-            bioenergyGWh: +feature.properties.bioenergies || 0,
+            bioenergyGWh: +feature.properties.production_bioenergies || 0,
             totalGWh: (
                 (+feature.properties.production_nucleaire || 0) +
                 (+feature.properties.production_thermique || 0) +
