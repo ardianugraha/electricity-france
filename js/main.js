@@ -430,28 +430,56 @@ function drawSankey() {
         .attr("stroke", "black")
         .attr("stroke", function (d) {
             if (d.source.name.includes("production")){
-                return color(d.target.name);
+                return ctx.colorMapping[d.target.name];
             } else if (d.target.name.includes("consumption")) {
-                return color(d.source.name);
+                return ctx.colorMapping[d.source.name];
             } else {
-                throw new Error('!');
+                throw new Error(`${d.name} is not a valid region!`);
             }
         })
         .attr("stroke-opacity", 0.5)
         .attr("stroke-width", d => Math.max(1, d.width));
 
     // Append nodes
+    const NODES_WIDTH = 10;
     const node = svg.append("g")
         .attr("class", "nodes")
         .selectAll("rect")
         .data(graph.nodes)
         .enter().append("rect")
-        .attr("x", d => d.x0)
+        .attr("x", function(d) {
+            // if it is not an energy type
+            if (ctx.colorMapping[d.name] == undefined) {
+                if (d.name.includes("consumption")) {
+                    return d.x0;
+                } else if (d.name.includes("production")) {
+                    return d.x1 - NODES_WIDTH;
+                } else {
+                    throw new Error(`${d.name} is not a valid region!`);
+                }
+            } else {
+                return d.x0
+            }
+        })
         .attr("y", d => d.y0)
         .attr("height", d => d.y1 - d.y0)
-        .attr("width", d => d.x1 - d.x0)
-        .attr("fill", d => color(d.name))
-        .attr("opacity", 0.8);
+        .attr("width", function(d) {
+            // if it is not an energy type
+            if (ctx.colorMapping[d.name] == undefined) {
+                return NODES_WIDTH;
+            } else {
+                return d.x1 - d.x0
+            }
+        })
+        .attr("fill", function(d) {
+            // if it is not an energy type
+            if (ctx.colorMapping[d.name] == undefined) {
+                return "black";
+            } else {
+                return ctx.colorMapping[d.name]
+            }
+        })
+        .attr("opacity", 0.6);
 
     // Add node labels
     svg.append("g")
@@ -459,10 +487,36 @@ function drawSankey() {
         .selectAll("text")
         .data(graph.nodes)
         .enter().append("text")
-        .attr("x", d => (d.x0 + d.x1) / 2)
+        .attr("x", function(d) {
+            // if it is not an energy type
+            if (ctx.colorMapping[d.name] == undefined) {
+                if (d.name.includes("consumption")) {
+                    return d.x0 + NODES_WIDTH * 1.5;
+                } else if (d.name.includes("production")) {
+                    return d.x1 - NODES_WIDTH * 1.5;
+                } else {
+                    throw new Error(`${d.name} is not a valid region!`);
+                }
+            } else {
+                return (d.x0 + d.x1) / 2
+            }
+        })
         .attr("y", d => (d.y0 + d.y1) / 2)
         .attr("dy", "0.35em")
-        .attr("text-anchor", "middle")
+        .attr("text-anchor", function(d) {
+            // if it is not an energy type
+            if (ctx.colorMapping[d.name] == undefined) {
+                if (d.name.includes("consumption")) {
+                    return "start";
+                } else if (d.name.includes("production")) {
+                    return "end";
+                } else {
+                    throw new Error(`${d.name} is not a valid region!`);
+                }
+            } else {
+                return "middle"
+            }
+        })
         .text(d => extractRegion(d.name))
         .attr("font-size", "10px")
         .attr("fill", "black");
