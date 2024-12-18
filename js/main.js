@@ -624,10 +624,8 @@ function drawTreeMapProd(data, filters) {
             prodGWh: entry[energyType.field]
         }))
     );
-    // console.log("prod flat:", ctx.prodRegionFlat);
 
     data_2023 = ctx.prodRegionFlat.filter(d => d.year == 2023);
-    // console.log("2023 prod:", data_2023);
 
     const filteredData = data_2023.filter(d => {
         const energyMatch = filters.energyType.length === 0 || filters.energyType.includes(d.energy_type);
@@ -759,11 +757,7 @@ function drawLineChart(data, filter) {
         .join("path")
         .style("mix-blend-mode", "multiply")
         .attr("d", line);
-    // console.log(groups.values());
-    // groups.values().forEach(group => {
-    //     console.log("Region:", group[0][2]);
-    //     console.log("Last Point:", group[group.length - 1]);
-    // });
+
  // Add region labels (names)
     const labels = svg.selectAll(".region-label")
         .data(groups.values())
