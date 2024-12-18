@@ -28,9 +28,18 @@
             height: 100vh; /* Full viewport height */
         }
 
-        .main-container {
+        .row-container {
             display: flex;
             flex-direction: row;
+            justify-content: space-between;
+            margin-left: 10px;
+            margin-right: 10px;
+            gap: 10px;
+        }
+
+        .column-container {
+            display: flex;
+            flex-direction: column;
             justify-content: space-between;
             margin-left: 10px;
             margin-right: 10px;
@@ -174,32 +183,34 @@
 
     <div class="container">
         <header>France Renewable Energy</header>
-        <main class="main-container">
-            <div class="row">
-                <div class="mapFilterContainer">
-                    <div id="energyTypeFilterContainer">
-                        <div class="container__title">Energy Type</div>
-                        <div id="energy-type" class="filter-container"></div>
-                    </div>
-                    <div id="regionFilterContainer">
-                        <div class="container__title">Region</div>
-                        <select id="region-select"></select>
-                    </div>
-                </div> 
-                <div id="mapContainer">France Metropolitan</div>
-                <div id="tooltip"></div>
-                <div id="tooltipRegion"></div>
-            </div>
-            <!-- add div(s) here for each figure -->
-            <div id="second", class="row">
-                <div id="treeMapSite" class="item">Maximum Production Capacity Installed</div>
-                <div id="treeMapProd" class="item">Actual Production</div>
+        <main class="column-container">
+            <div class="mapFilterContainer">
+                <div id="energyTypeFilterContainer">
+                    <div class="container__title">Energy Type</div>
+                    <div id="energy-type" class="filter-container"></div>
+                </div>
+                <div id="regionFilterContainer">
+                    <div class="container__title">Region</div>
+                    <select id="region-select"></select>
+                </div>
+            </div> 
+            <div class="row-container">
+                <div class="row">
+                    <div id="mapContainer">France Metropolitan</div>
+                    <div id="tooltip"></div>
+                    <div id="tooltipRegion"></div>
+                </div>
+                <!-- add div(s) here for each figure -->
+                <div id="second", class="row">
+                    <div id="treeMapSite" class="item">Maximum Production Capacity Installed</div>
+                    <div id="treeMapProd" class="item">Actual Production</div>
 
-            </div>
-            <div id="third", class="row">
-                <div id="scatterPlot"></div>
-                <div id="sankeyContainer" class="item">Actual Production and Consumption</div>
-                <div id="lineChart"></div>
+                </div>
+                <div id="third", class="row">
+                    <div id="scatterPlot"></div>
+                    <div id="sankeyContainer" class="item">Actual Production and Consumption</div>
+                    <div id="lineChart"></div>
+                </div>
             </div>
         </main>
         <footer></footer>
