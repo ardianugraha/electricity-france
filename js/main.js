@@ -169,7 +169,7 @@ function drawMap() {
     //TODO
     // draw France map with its regions
     ctx.LFmap = L.map('mapContainer', {
-        minZoom: 6, // Minimum zoom level to avoid zooming too far out
+        minZoom: 5, // Minimum zoom level to avoid zooming too far out
         maxZoom: 10, // Maximum zoom level
         maxBoundsViscosity: 1, // Ensures the map sticks within the bounds
     });
@@ -181,7 +181,7 @@ function drawMap() {
         attribution: ctx.ATTRIB
     }).addTo(ctx.LFmap);
 
-    ctx.LFmap.setView([46.603354, 1.888334], 6); // Center on France with a zoom level of 6
+    ctx.LFmap.setView([46.603354, 2.3], 6); // Center on France with a zoom level of 6
 
     // ctx.clicked = false;
     const regionLayer = L.geoJson(ctx.mapRegions, {
@@ -242,7 +242,7 @@ function zoomToRegion(e) {
 function zoomOutMap(e) {
     const layer = e.target;
     ctx.selectedRegionCode = layer.feature.properties.region_code;
-    ctx.LFmap.setView([46.603354, 1.888334], 6);
+    ctx.LFmap.setView([46.603354, 2.3], 6);
 };
 
 function highlightRegion(e, data) {
