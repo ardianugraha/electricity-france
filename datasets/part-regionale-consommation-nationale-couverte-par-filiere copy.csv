@@ -1,4 +1,4 @@
-﻿Année,Code INSEE région,Filière,Région,Part de la consommation nationale couverte (%),part_peryear_normalized,year_prodGWh,filiere_prodGWh
+Année,Code INSEE région,Filière,Région,Part de la consommation nationale couverte (%),part_peryear_normalized,year_prodGWh,filiere_consGWh
 2018,84,Nuclear,Auvergne-Rhône-Alpes,16.8,0.146724891,538006,78938.87162
 2018,84,Non-renewablee,Auvergne-Rhône-Alpes,0.3,0.002620087,538006,1409.622707
 2018,84,Solar,Auvergne-Rhône-Alpes,0.2,0.001746725,538006,939.7484716
