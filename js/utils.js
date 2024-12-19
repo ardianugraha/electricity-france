@@ -1,7 +1,7 @@
 // TODO
 // define functions here
 function extractRegion(str) {
-    if (str.includes("-")) {
+    if (str.includes("-") & (str.includes("production") || str.includes("consumption"))) {
         return str.substring(str.indexOf("-") + 1);
     }
     return str;
@@ -209,6 +209,51 @@ function drawTreeMap(hierarchyData, elementId) {
         .attr("fill-opacity", (d, i) => i === 1 ? 0.7 : null)
         .text(d => d);
 };
+
+function getSummaryStatistics(data) {
+    return d3.rollup(data, function (d) {
+        let q1 = d3.quantile(d.map(function (p) { return p.sum_max_power_installed; }).sort(d3.ascending), .25);
+        let median = d3.quantile(d.map(function (p) { return p.sum_max_power_installed; }).sort(d3.ascending), .5);
+        let q3 = d3.quantile(d.map(function (p) { return p.sum_max_power_installed; }).sort(d3.ascending), .75);
+        let iqr = q3 - q1;
+        let min = d3.min(data, (d) => (d.sum_max_power_installed));
+        let max = d3.max(data, (d) => (d.sum_max_power_installed));
+        return ({ q1: q1, median: median, q3: q3, iqr: iqr, min: min, max: max })
+    });
+};
+
+function logHistogram(values, numBins = 20) {
+    // Ensure all values are positive
+    const positiveValues = values.filter(v => v > 0);
+    
+    if (positiveValues.length === 0) return [];
+
+    // Calculate log range
+    const logMin = Math.log(Math.min(...positiveValues));
+    const logMax = Math.log(Math.max(...positiveValues));
+    
+    // Create log-spaced thresholds
+    const logThresholds = Array.from(
+        {length: numBins + 1}, 
+        (_, i) => Math.exp(logMin + (logMax - logMin) * i / numBins)
+    );
+
+    // Create bins manually
+    const bins = [];
+    for (let i = 0; i < logThresholds.length - 1; i++) {
+        const bin = positiveValues.filter(
+            v => v >= logThresholds[i] && v < logThresholds[i+1]
+        );
+        
+        bins.push({
+            x0: logThresholds[i],
+            x1: logThresholds[i+1],
+            length: bin.length
+        });
+    }
+
+    return bins;
+}
 
 function controlFromInput(fromSlider, fromInput, toInput, controlSlider) {
     const [from, to] = getParsed(fromInput, toInput);

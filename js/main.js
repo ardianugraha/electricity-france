@@ -2,7 +2,8 @@
 const ctx = {
     // MAP_W: 1024,
     // MAP_H: 1024,
-    SANKEY_W: 700, SANKEY_H: 700, SANKEY_MARGIN: {top: 10, right: 10, bottom: 10, left: 10},
+    SANKEY_W: 1200, SANKEY_H: 700, SANKEY_MARGIN: {top: 10, right: 10, bottom: 10, left: 10},
+    SCATTER_W:650, SCATTER_H: 600, SCATTER_MARGIN: {top: 20, right: 100, bottom: 60, left: 50}, SCATTER_STROKE_WIDTH: 0.5,
     ATTRIB: '<a href="https://linkedin.com/in/ardianugraha">Nugraha</a> & <a href="https://linkedin.com/in/matin-zivdar">Zivdar</a> (<a href="https://www.enseignement.polytechnique.fr/informatique/CSC_51052/">CSC_51052_EP</a>) | Map &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, Data &copy; <a href="https://data.enedis.fr">Enedis</a> & <a href="https://odre.opendatasoft.com/">ODRE</a>',
     LFmap: null,
     energyType: [
@@ -52,7 +53,7 @@ function loadData() {
     const promise_files = [
         d3.json("datasets/prod-region-annuelle-filiere.geojson"),
         d3.csv("datasets/registre-national-installation-production-stockage-electricite grouped.csv"),
-        d3.text("datasets/part-regionale-consommation-nationale-couverte-par-filiere.csv").then(text => semicolonCSV.parse(text)),
+        d3.csv("datasets/part-regionale-consommation-nationale-couverte-par-filiere copy.csv"),
         d3.text("datasets/conso-nette-regionale.csv").then(text => semicolonCSV.parse(text))
     ];
 
@@ -140,8 +141,7 @@ function loadData() {
             regionName: d["Région"],
             energyType: d["Filière"],
             nationalConsumptionPercentage: parseFloat(d["Part de la consommation nationale couverte (%)"]),
-            geoShape: JSON.parse(d["Géo-shape de la région"]),
-            geoPoint: d["Géo-point de la région"].split(',').map(Number)
+            filiere_consGWh: parseFloat(d["filiere_consGWh"])
         }));
 
         ctx.consRegion = cons_region.map(d => ({
@@ -339,7 +339,7 @@ function drawSankey() {
     console.log("Drawing Sankey diagram");
     // Prepare data for Sankey diagram
     const sankey = d3.sankey()
-        .nodeWidth(ctx.SANKEY_W / 5)
+        .nodeWidth(ctx.SANKEY_W / 15)
         .nodePadding(10)
         .size([ctx.SANKEY_W, ctx.SANKEY_H]);
 
@@ -391,12 +391,22 @@ function drawSankey() {
     // TODO: Fix consumption!
     // TODO: Add a year selection field
     // Process consumption data to create links from energy types to consumption regions
-    ctx.consRegion.forEach(cons => {
-        // TODO
+    ctx.consRegionPart.forEach(cons => {
+        if (cons.year === 2020) {
+            regions.add("consumption-" + cons.regionName);
+            if (cons.filiere_consGWh > 0) {
+                links.push({
+                    source: cons.energyType,
+                    target: "consumption-" + cons.regionName,
+                    value: cons.filiere_consGWh
+                });
+            }
+        }
     });
 
     // Combine and sort unique nodes
-    const allNodes = Array.from(new Set([...regions, ...ctx.energyType]));
+    // using slice to exclude 'Marine Energy', 'Geothermal'
+    const allNodes = Array.from(new Set([...regions, ...ctx.energyType.slice(0, -2)]));
 
     // Create node index map
     const nodeIndices = new Map(allNodes.map((node, i) => [node, i]));
@@ -439,22 +449,58 @@ function drawSankey() {
         .attr("d", d3.sankeyLinkHorizontal())
         .attr("fill", "none")
         .attr("stroke", "black")
-        .attr("stroke", d => color(d.target.name))
+        .attr("stroke", function (d) {
+            if (d.source.name.includes("production")){
+                return ctx.colorMapping[d.target.name];
+            } else if (d.target.name.includes("consumption")) {
+                return ctx.colorMapping[d.source.name];
+            } else {
+                throw new Error(`${d.name} is not a valid region!`);
+            }
+        })
         .attr("stroke-opacity", 0.5)
         .attr("stroke-width", d => Math.max(1, d.width));
 
     // Append nodes
+    const NODES_WIDTH = 10;
     const node = svg.append("g")
         .attr("class", "nodes")
         .selectAll("rect")
         .data(graph.nodes)
         .enter().append("rect")
-        .attr("x", d => d.x0)
+        .attr("x", function(d) {
+            // if it is not an energy type
+            if (ctx.colorMapping[d.name] == undefined) {
+                if (d.name.includes("consumption")) {
+                    return d.x0;
+                } else if (d.name.includes("production")) {
+                    return d.x1 - NODES_WIDTH;
+                } else {
+                    throw new Error(`${d.name} is not a valid region!`);
+                }
+            } else {
+                return d.x0
+            }
+        })
         .attr("y", d => d.y0)
         .attr("height", d => d.y1 - d.y0)
-        .attr("width", d => d.x1 - d.x0)
-        .attr("fill", d => color(d.name))
-        .attr("opacity", 0.8);
+        .attr("width", function(d) {
+            // if it is not an energy type
+            if (ctx.colorMapping[d.name] == undefined) {
+                return NODES_WIDTH;
+            } else {
+                return d.x1 - d.x0
+            }
+        })
+        .attr("fill", function(d) {
+            // if it is not an energy type
+            if (ctx.colorMapping[d.name] == undefined) {
+                return "black";
+            } else {
+                return ctx.colorMapping[d.name]
+            }
+        })
+        .attr("opacity", 0.6);
 
     // Add node labels
     svg.append("g")
@@ -462,10 +508,36 @@ function drawSankey() {
         .selectAll("text")
         .data(graph.nodes)
         .enter().append("text")
-        .attr("x", d => (d.x0 + d.x1) / 2)
+        .attr("x", function(d) {
+            // if it is not an energy type
+            if (ctx.colorMapping[d.name] == undefined) {
+                if (d.name.includes("consumption")) {
+                    return d.x0 + NODES_WIDTH * 1.5;
+                } else if (d.name.includes("production")) {
+                    return d.x1 - NODES_WIDTH * 1.5;
+                } else {
+                    throw new Error(`${d.name} is not a valid region!`);
+                }
+            } else {
+                return (d.x0 + d.x1) / 2
+            }
+        })
         .attr("y", d => (d.y0 + d.y1) / 2)
         .attr("dy", "0.35em")
-        .attr("text-anchor", "middle")
+        .attr("text-anchor", function(d) {
+            // if it is not an energy type
+            if (ctx.colorMapping[d.name] == undefined) {
+                if (d.name.includes("consumption")) {
+                    return "start";
+                } else if (d.name.includes("production")) {
+                    return "end";
+                } else {
+                    throw new Error(`${d.name} is not a valid region!`);
+                }
+            } else {
+                return "middle"
+            }
+        })
         .text(d => extractRegion(d.name))
         .attr("font-size", "10px")
         .attr("fill", "black");
@@ -480,9 +552,9 @@ function drawScatter() {
     d3.select("#scatterPlot").selectAll("*").remove();
 
     // Set up dimensions and margins
-    const width = 500;  // Reduced width
-    const height = 400; // Reduced height
-    const margin = { top: 50, right: 100, bottom: 50, left: 80 }; // Adjusted margins to fit legend
+    const width = ctx.SCATTER_W;  // Reduced width
+    const height = ctx.SCATTER_H; // Reduced height
+    const margin = ctx.SCATTER_MARGIN; // Adjusted margins to fit legend
 
     // Create SVG
     const svg = d3.select("#scatterPlot")
@@ -510,6 +582,33 @@ function drawScatter() {
         .range([height, 0])
         .nice();
 
+    var sumstat = Array.from(
+        d3.group(filteredSites, d => d.energy_type),
+        ([key, values]) => {
+            // Filter out zero or negative values
+            const validValues = values
+                .map(d => d.sum_max_power_installed);
+            const histogramResult = logHistogram(validValues);
+            return {
+                key: key,
+                value: histogramResult
+            };
+        }
+    );
+
+    // What is the biggest number of value in a bin? We need it cause this value will have a width of 100% of the bandwidth.
+    var violinxScales = []
+    for (i in sumstat){
+        allBins = sumstat[i].value
+        lengths = allBins.map(function(a){return a.length;})
+        max = d3.max(lengths)
+        violinxScales.push(
+            d3.scaleLinear()
+            .range([0, xScale.bandwidth()])
+            .domain([-max,max])
+        );
+    }
+    
     // Color scale for energy types
     const colorScale = d3.scaleOrdinal()
         .domain(energyTypes)
@@ -528,7 +627,7 @@ function drawScatter() {
         .call(d3.axisLeft(yScale).ticks(10, "~s")) // Logarithmic ticks
         .append("text")
         .attr("transform", "rotate(-90)")
-        .attr("y", -70)
+        .attr("y", -40)
         .attr("x", -height / 2)
         .attr("fill", "black")
         .text("Installed Power (GW, Log Scale)");
@@ -542,7 +641,7 @@ function drawScatter() {
         .attr("cx", d => xScale(d.energy_type) + xScale.bandwidth() / 2 + (Math.random() - 0.5) * xScale.bandwidth() * 0.5)
         .attr("cy", d => yScale(d.sum_max_power_installed))
         .attr("r", 1) // Fixed size
-        .attr("fill", d => colorScale(d.energy_type))
+        .attr("fill", d => ctx.colorMapping[d.energy_type])
         .attr("opacity", 0.7)
         .append("title")
         .text(d => `${d.commune} - ${d.energy_type}\nInstalled Power: ${d.sum_max_power_installed.toFixed(2)} GW`);
@@ -557,7 +656,7 @@ function drawScatter() {
 
     legend.append("circle")
         .attr("r", 5)
-        .attr("fill", d => colorScale(d));
+        .attr("fill", d => ctx.colorMapping[d]);
 
     legend.append("text")
         .attr("x", 10)
@@ -565,6 +664,76 @@ function drawScatter() {
         .text(d => d)
         .attr("font-size", "10px")
         .attr("text-anchor", "start");
+
+    // draw box
+    for (let i=0; i<ctx.energyType.length-1; i++) {
+        let data = filteredSites.filter(function (d){return d.energy_type == ctx.energyType[i]})
+        statistics = getSummaryStatistics(data);
+        // Median line
+        svg.append('line')
+            .style("stroke", "#848484")
+            .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
+            // .attr("x1", -10)
+            .attr("x1", xScale(ctx.energyType[i]))
+            .attr("y1", yScale(statistics.median))
+            .attr("x2", xScale(ctx.energyType[i]) + xScale.bandwidth())
+            .attr("y2", yScale(statistics.median));
+
+        // IQR box
+        svg.append('rect')
+            .style("stroke", "#848484")
+            .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
+            .style("fill", "transparent")
+            .attr("x", xScale(ctx.energyType[i]))
+            .attr("y", yScale(statistics.q3))
+            .attr("width", xScale.bandwidth())
+            .attr("height", Math.abs(yScale(statistics.q1)-yScale(statistics.q3)));
+        
+        // Min and Max lines
+        svg.append('line')
+            .style("stroke", "#848484")
+            .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
+            .attr("x1", xScale(ctx.energyType[i]) + 5)
+            .attr("y1", yScale(statistics.min))
+            .attr("x2", xScale(ctx.energyType[i]) + xScale.bandwidth() - 5)
+            .attr("y2", yScale(statistics.min));
+        svg.append('line')
+            .style("stroke", "#848484")
+            .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
+            .attr("x1", xScale(ctx.energyType[i]) + 5)
+            .attr("y1", yScale(statistics.max))
+            .attr("x2", xScale(ctx.energyType[i]) + xScale.bandwidth() - 5)
+            .attr("y2", yScale(statistics.max));
+        svg.append('line')
+            .style("stroke", "#848484")
+            .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
+            .attr("x1", xScale(ctx.energyType[i]) + xScale.bandwidth()/2)
+            .attr("y1", yScale(statistics.min))
+            .attr("x2", xScale(ctx.energyType[i]) + xScale.bandwidth()/2)
+            .attr("y2", yScale(statistics.max));
+    }
+    // TODO
+    // Draw violin plots with individual scales
+    svg.selectAll("myViolin")
+        .data(sumstat)
+        .enter()
+        .append("g")
+        .attr("transform", d => `translate(${xScale(d.key)},0)`)
+        .append("path")
+        .datum(d => d.value)
+        .style("stroke", "none")
+        // .style("fill", d => ctx.colorMapping[sumstat.find(s => s.value === d).key])
+        .style("fill", d => "black")
+        .style("opacity", 0.4)
+        .attr("d", (d, i, nodes) => {
+            const energyType = sumstat[i].key;
+            const xScale = violinxScales[energyTypes.indexOf(energyType)];
+            return d3.area()
+                .x0(d => xScale(-d.length))
+                .x1(d => xScale(d.length))
+                .y(d => yScale(d.x0))
+                .curve(d3.curveCatmullRom)(d);
+        });
 }
 
 function drawRegression() {
