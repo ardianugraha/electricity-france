@@ -3,7 +3,7 @@ const ctx = {
     // MAP_W: 1024,
     // MAP_H: 1024,
     SANKEY_W: 1200, SANKEY_H: 700, SANKEY_MARGIN: {top: 10, right: 10, bottom: 10, left: 10},
-    SCATTER_W:650, SCATTER_H: 600, SCATTER_MARGIN: {top: 20, right: 100, bottom: 60, left: 50},
+    SCATTER_W:650, SCATTER_H: 600, SCATTER_MARGIN: {top: 20, right: 100, bottom: 60, left: 50}, SCATTER_STROKE_WIDTH: 0.5,
     ATTRIB: '<a href="https://linkedin.com/in/ardianugraha">Nugraha</a> & <a href="https://linkedin.com/in/matin-zivdar">Zivdar</a> (<a href="https://www.enseignement.polytechnique.fr/informatique/CSC_51052/">CSC_51052_EP</a>) | Map &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, Data &copy; <a href="https://data.enedis.fr">Enedis</a> & <a href="https://odre.opendatasoft.com/">ODRE</a>',
     LFmap: null,
     energyType: [
@@ -562,6 +562,33 @@ function drawScatter() {
         .range([height, 0])
         .nice();
 
+    var sumstat = Array.from(
+        d3.group(filteredSites, d => d.energy_type),
+        ([key, values]) => {
+            // Filter out zero or negative values
+            const validValues = values
+                .map(d => d.sum_max_power_installed);
+            const histogramResult = logHistogram(validValues);
+            return {
+                key: key,
+                value: histogramResult
+            };
+        }
+    );
+
+    // What is the biggest number of value in a bin? We need it cause this value will have a width of 100% of the bandwidth.
+    var violinxScales = []
+    for (i in sumstat){
+        allBins = sumstat[i].value
+        lengths = allBins.map(function(a){return a.length;})
+        max = d3.max(lengths)
+        violinxScales.push(
+            d3.scaleLinear()
+            .range([0, xScale.bandwidth()])
+            .domain([-max,max])
+        );
+    }
+    
     // Color scale for energy types
     const colorScale = d3.scaleOrdinal()
         .domain(energyTypes)
@@ -617,6 +644,76 @@ function drawScatter() {
         .text(d => d)
         .attr("font-size", "10px")
         .attr("text-anchor", "start");
+
+    // draw box
+    for (let i=0; i<ctx.energyType.length-1; i++) {
+        let data = filteredSites.filter(function (d){return d.energy_type == ctx.energyType[i]})
+        statistics = getSummaryStatistics(data);
+        // Median line
+        svg.append('line')
+            .style("stroke", "#848484")
+            .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
+            // .attr("x1", -10)
+            .attr("x1", xScale(ctx.energyType[i]))
+            .attr("y1", yScale(statistics.median))
+            .attr("x2", xScale(ctx.energyType[i]) + xScale.bandwidth())
+            .attr("y2", yScale(statistics.median));
+
+        // IQR box
+        svg.append('rect')
+            .style("stroke", "#848484")
+            .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
+            .style("fill", "transparent")
+            .attr("x", xScale(ctx.energyType[i]))
+            .attr("y", yScale(statistics.q3))
+            .attr("width", xScale.bandwidth())
+            .attr("height", Math.abs(yScale(statistics.q1)-yScale(statistics.q3)));
+        
+        // Min and Max lines
+        svg.append('line')
+            .style("stroke", "#848484")
+            .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
+            .attr("x1", xScale(ctx.energyType[i]) + 5)
+            .attr("y1", yScale(statistics.min))
+            .attr("x2", xScale(ctx.energyType[i]) + xScale.bandwidth() - 5)
+            .attr("y2", yScale(statistics.min));
+        svg.append('line')
+            .style("stroke", "#848484")
+            .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
+            .attr("x1", xScale(ctx.energyType[i]) + 5)
+            .attr("y1", yScale(statistics.max))
+            .attr("x2", xScale(ctx.energyType[i]) + xScale.bandwidth() - 5)
+            .attr("y2", yScale(statistics.max));
+        svg.append('line')
+            .style("stroke", "#848484")
+            .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
+            .attr("x1", xScale(ctx.energyType[i]) + xScale.bandwidth()/2)
+            .attr("y1", yScale(statistics.min))
+            .attr("x2", xScale(ctx.energyType[i]) + xScale.bandwidth()/2)
+            .attr("y2", yScale(statistics.max));
+    }
+    // TODO
+    // Draw violin plots with individual scales
+    svg.selectAll("myViolin")
+        .data(sumstat)
+        .enter()
+        .append("g")
+        .attr("transform", d => `translate(${xScale(d.key)},0)`)
+        .append("path")
+        .datum(d => d.value)
+        .style("stroke", "none")
+        // .style("fill", d => ctx.colorMapping[sumstat.find(s => s.value === d).key])
+        .style("fill", d => "black")
+        .style("opacity", 0.4)
+        .attr("d", (d, i, nodes) => {
+            const energyType = sumstat[i].key;
+            const xScale = violinxScales[energyTypes.indexOf(energyType)];
+            return d3.area()
+                .x0(d => xScale(-d.length))
+                .x1(d => xScale(d.length))
+                .y(d => yScale(d.x0))
+                .curve(d3.curveCatmullRom)(d);
+        });
 }
 
 function drawRegression() {
