@@ -371,7 +371,7 @@ function initializeRangeControls() {
     ctx.currentFilters.maxPower = maxCapacity;
 
     // Initialize the slider fill and toggle accessibility
-    fillSlider(fromSlider, toSlider, '#C6C6C6', '#25daa5', toSlider);
+    fillSlider(fromSlider, toSlider, '#C6C6C6', '#1a1d21', toSlider);
     setToggleAccessible(toSlider);
 
     // Add event listeners for interactivity
