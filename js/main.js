@@ -2,7 +2,7 @@
 const ctx = {
     // MAP_W: 1024,
     // MAP_H: 1024,
-    SANKEY_W: 1200, SANKEY_H: 700, SANKEY_MARGIN: {top: 10, right: 10, bottom: 10, left: 10},
+    SANKEY_W: 1100, SANKEY_H: 700, SANKEY_MARGIN: {top: 10, right: 10, bottom: 10, left: 10},
     SCATTER_W:650, SCATTER_H: 600, SCATTER_MARGIN: {top: 20, right: 100, bottom: 60, left: 50}, SCATTER_STROKE_WIDTH: 0.5,
     ATTRIB: '<a href="https://linkedin.com/in/ardianugraha">Nugraha</a> & <a href="https://linkedin.com/in/matin-zivdar">Zivdar</a> (<a href="https://www.enseignement.polytechnique.fr/informatique/CSC_51052/">CSC_51052_EP</a>) | Map &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>, Data &copy; <a href="https://data.enedis.fr">Enedis</a> & <a href="https://odre.opendatasoft.com/">ODRE</a>',
     LFmap: null,
