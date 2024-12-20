@@ -473,18 +473,31 @@ function drawScatterStatistics(selectedRegion) {
 
     svg = d3.select("div#scatterPlot").select("svg").select("g")
 
+    var isRangeChanged = false;
+    const [minCapacity, maxCapacity ] = d3.extent(ctx.sitesMap, d => d.sum_max_power_installed);
+    if (
+        (minCapacity==ctx.currentFilters.minPower) &&
+        (maxCapacity==ctx.currentFilters.maxPower)
+    ) {
+        isRangeChanged = false;
+    } else {
+        isRangeChanged = true;
+    }
+
     d3.selectAll(".selectedRegionStatistics")
         .transition()
         .duration(500)
         .style("opacity", 0)
         .remove();
 
-    if (selectedRegion != "") {
+    if ((selectedRegion != "") || (isRangeChanged)) {
         // Prepare data
         const filteredSites = ctx.sitesMap.filter(site =>
             site.sum_max_power_installed >= ctx.currentFilters.minPower &&
             site.sum_max_power_installed <= ctx.currentFilters.maxPower &&
-            site.long && site.lat && site.sum_max_power_installed > 1 && site.region==selectedRegion
+            site.long && site.lat && site.sum_max_power_installed > 1 &&
+            // only check region if a region is selected
+            (selectedRegion=="" ? true : site.region==selectedRegion)
         );
 
         // X-axis: Energy Type (categorical)
