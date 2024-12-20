@@ -749,7 +749,8 @@ function drawTreeMapSite(data, filters) {
     const filteredData = data.filter(d => {
         const energyMatch = filters.energyType.length === 0 || filters.energyType.includes(d.energy_type);
         const regionMatch =  filters.region.length === 0 || d.region_code == ctx.regionLookup.nameToCode[filters.region];
-        return energyMatch && regionMatch;
+        const powerMatch = (filters.minPower === null || d.sum_max_power_installed >= filters.minPower && d.sum_max_power_installed <= filters.maxPower);
+        return energyMatch && regionMatch && powerMatch;
     });
 
     const groupedData = d3.group(filteredData, d => d.energy_type);
@@ -844,7 +845,7 @@ function drawLineChart(data, filter) {
         .attr("width", width)
         .attr("height", height)
         .attr("viewBox", [0, 0, width, height])
-        .attr("style", "max-width: 100%; height: auto; overflow: visible; font: 10px sans-serif;");      
+        .attr("style", "overflow: visible; font: 10px sans-serif;");      
     
     // Add the horizontal axis.
     svg.append("g")
