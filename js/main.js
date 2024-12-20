@@ -667,7 +667,8 @@ function drawScatter() {
 
     legend.append("circle")
         .attr("r", 5)
-        .attr("fill", d => ctx.colorMapping[d]);
+        .attr("fill", d => ctx.colorMapping[d])
+        .attr("opacity", 0.6);
 
     legend.append("text")
         .attr("x", 10)
