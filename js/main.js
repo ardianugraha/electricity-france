@@ -19,14 +19,14 @@ const ctx = {
         // 'Other'
     ],
     colorMapping: {
-        "Bioenergy": "#6B3F2A",   // Dark brown
-        "Wind": "#87CEEB",         // Sky blue
-        "Hydro": "#4682B4",    // Steel blue
-        "Nuclear": "#D32F2F",      // Red
-        "Solar": "#e8c33c",         // Yellow
-        "Non-renewable": "black",
-        "Marine Energy": "#003366", // Dark blue
-        "Geothermal": "#FFA500",     // Orange
+        "Bioenergy": "#2E7D32",   //  Forest green
+        "Wind": "#00B4D8",         // Sky blue
+        "Hydro": "#1E88E5",    // Steel blue
+        "Nuclear": "#FF4444",      // Deep Red
+        "Solar": "#FFD700",         // Yellow
+        "Non-renewable": "#6D4C41", // Dark brown
+        "Marine Energy": "#1A237E", // Dark blue
+        "Geothermal": "#FF8F00",     // Orange
         // "Storage": "silver",
         // "Other": "darkgray",
     },
