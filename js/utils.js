@@ -183,11 +183,12 @@ function drawTreeMap(hierarchyData, elementId) {
     leaf.append("rect")
         .attr("fill", d => ctx.colorMapping[d.data.name])
         .attr("fill-opacity", 0.6)
+        .attr("width", 0)
+        .attr("height", 0)
+        .transition()
+        .duration(300)
         .attr("width", d => d.x1 - d.x0)
         .attr("height", d => d.y1 - d.y0)
-        .style("opacity", 0)
-        .transition()
-        .duration(500)
         .style("opacity", 1);
     
     if (elementId == "#treeMapSite") {
