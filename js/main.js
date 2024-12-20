@@ -844,7 +844,7 @@ function drawLineChart(data, filter) {
         .attr("width", width)
         .attr("height", height)
         .attr("viewBox", [0, 0, width, height])
-        .attr("style", "max-width: 100%; height: auto; overflow: visible; font: 10px sans-serif;");      
+        .attr("style", "overflow: visible; font: 10px sans-serif;");      
     
     // Add the horizontal axis.
     svg.append("g")
