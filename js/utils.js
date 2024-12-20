@@ -12,6 +12,9 @@ const createFilter = (key, param, container) => {
     filterButton.className = "filter-button";
     filterButton.innerText = param;
     filterButton.setAttribute("data-state", "inactive");
+    filterButton.setAttribute("data-type", param);
+    const color = ctx.colorMapping[param];
+    filterButton.style.borderColor = color; 
     filterButton.addEventListener("click", (e) =>
         handleButtonClick(e, key, param, container)
     );
@@ -22,14 +25,20 @@ const createFilter = (key, param, container) => {
 const handleButtonClick = (e, key, param, container) => {
     const button = e.target;
     const buttonState = button.getAttribute("data-state");
+    const type = button.getAttribute("data-type");
+    const color = ctx.colorMapping[type];
 
     if (buttonState == "inactive") {
         button.classList.add("is-active");
         button.setAttribute("data-state", "active");
+        button.style.backgroundColor = color;
+        button.style.borderColor = color;
         ctx.currentFilters[key].push(param);
     } else {
         button.classList.remove("is-active");
         button.setAttribute("data-state", "inactive");
+        button.style.backgroundColor = "";
+        button.style.borderColor = color;
         ctx.currentFilters[key] = ctx.currentFilters[key].filter((item) => item !== param);
     }
 
