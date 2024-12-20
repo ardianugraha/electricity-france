@@ -458,6 +458,15 @@ function drawSankey() {
                 throw new Error(`${d.name} is not a valid region!`);
             }
         })
+        .attr("class", function (d) {
+            if (d.source.name.includes("production")){
+                return normalizeRegion(extractRegion(d.source.name));
+            } else if (d.target.name.includes("consumption")) {
+                return normalizeRegion(extractRegion(d.target.name));
+            } else {
+                throw new Error(`${d.name} is not a valid region!`);
+            }
+        })
         .attr("stroke-opacity", 0.5)
         .attr("stroke-width", d => Math.max(1, d.width));
 

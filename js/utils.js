@@ -5,7 +5,11 @@ function extractRegion(str) {
         return str.substring(str.indexOf("-") + 1);
     }
     return str;
-  }
+}
+
+function normalizeRegion(str) {
+    return str.replaceAll(" ", "_").replace("'", "");
+}
 
 const createFilter = (key, param, container) => {
     const filterButton = document.createElement("button");
@@ -92,6 +96,41 @@ function updateFilter(currentFilters) {
     drawTreeMapSite(ctx.sitesMap, currentFilters);
     drawTreeMapProd(ctx.prodRegion, currentFilters);
     // drawLineChart(currentFilters);
+
+    if (ctx.currentFilters.region == "") {
+        d3.select("g.links")
+            .selectAll("path")
+            .transition()
+            .duration(1000)
+            .attr("stroke", function (d) {
+                if (d.source.name.includes("production")){
+                    return ctx.colorMapping[d.target.name];
+                } else if (d.target.name.includes("consumption")) {
+                    return ctx.colorMapping[d.source.name];
+                } else {
+                    throw new Error(`${d.name} is not a valid region!`);
+                }
+            });
+    } else {
+        d3.selectAll(`path.${normalizeRegion(ctx.currentFilters.region)}`)
+            .transition()
+            .duration(1000)
+            .attr("stroke", function (d) {
+                if (d.source.name.includes("production")){
+                    return ctx.colorMapping[d.target.name];
+                } else if (d.target.name.includes("consumption")) {
+                    return ctx.colorMapping[d.source.name];
+                } else {
+                    throw new Error(`${d.name} is not a valid region!`);
+                }
+            });
+    
+        // Change stroke of all other paths
+        d3.selectAll(`path:not(.${normalizeRegion(ctx.currentFilters.region)})`)
+            .transition()
+            .duration(1000)
+            .attr("stroke", "gray");
+    }
 };
 
 function groupSitesByCommune(sites) {
