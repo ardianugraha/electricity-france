@@ -551,7 +551,9 @@ function drawSankey() {
         })
         .text(d => extractRegion(d.name))
         .attr("font-size", "10px")
-        .attr("fill", "black");
+        .attr("fill", "black")
+        .append("title")
+        .text(d => `${extractRegion(d.name)}\n${d.value} GWh`);
 
     // Adds a title on the nodes.
     node.append("title")
