@@ -97,6 +97,9 @@ function updateFilter(currentFilters) {
     drawTreeMapProd(ctx.prodRegion, currentFilters);
     // drawLineChart(currentFilters);
 
+    // Because the minimum value for logarithmic scale is 1
+    var scatterMinSitesPower =  (ctx.currentFilters.minPower < 1) ? 1 : ctx.currentFilters.minPower;
+
     if (ctx.currentFilters.region == "") {
         // Sankey Plot
         d3.select("g.links")
@@ -115,6 +118,11 @@ function updateFilter(currentFilters) {
         
         // Scatter Plot
         d3.selectAll(`circle.site-point`)
+            .filter(function(d) {
+                // Check if the 'cy' value is within a certain range
+                return  d3.select(this).attr("cy") <= ctx.yScaleScatter(scatterMinSitesPower) &&
+                        d3.select(this).attr("cy") >= ctx.yScaleScatter(ctx.currentFilters.maxPower);
+            })
             .transition()
             .duration(1000)
             .attr("opacity", 0.6)
@@ -142,6 +150,11 @@ function updateFilter(currentFilters) {
 
         // Scatter Plot
         d3.selectAll(`circle.site-point.${normalizeRegion(ctx.currentFilters.region)}`)
+            .filter(function(d) {
+                // Check if the 'cy' value is within a certain range
+                return  d3.select(this).attr("cy") <= ctx.yScaleScatter(scatterMinSitesPower) &&
+                        d3.select(this).attr("cy") >= ctx.yScaleScatter(ctx.currentFilters.maxPower);
+            })
             .transition()
             .duration(1000)
             .attr("opacity", 0.6)
@@ -153,6 +166,18 @@ function updateFilter(currentFilters) {
             .attr("opacity", 0)
             .attr("r", 0)
     }
+
+    // fade out points that are not in range
+    d3.selectAll(`circle.site-point`)
+        .filter(function(d) {
+            // Check if the 'cy' value is within a certain range
+            return  !(d3.select(this).attr("cy") <= ctx.yScaleScatter(scatterMinSitesPower) &&
+                    d3.select(this).attr("cy") >= ctx.yScaleScatter(ctx.currentFilters.maxPower));
+        })
+        .transition()
+        .duration(1000)
+        .attr("opacity", 0)
+        .attr("r", 0)
 
     drawScatterStatistics(ctx.currentFilters.region)
 };
