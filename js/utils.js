@@ -491,6 +491,11 @@ function drawScatterStatistics(selectedRegion) {
         .remove();
 
     if ((selectedRegion != "") || (isRangeChanged)) {
+        d3.selectAll(".mainScatterStatistics")
+            .transition()
+            .duration(500)
+            .style("opacity", 0.2)
+
         // Prepare data
         const filteredSites = ctx.sitesMap.filter(site =>
             site.sum_max_power_installed >= ctx.currentFilters.minPower &&
@@ -630,6 +635,11 @@ function drawScatterStatistics(selectedRegion) {
                     .y(d => ctx.yScaleScatter(d.x0))
                     .curve(d3.curveCatmullRom)(d);
             });
+    } else {
+        d3.selectAll(".mainScatterStatistics")
+            .transition()
+            .duration(500)
+            .style("opacity", 1)
     }
     
 }

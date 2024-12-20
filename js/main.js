@@ -683,6 +683,7 @@ function drawScatter() {
         statistics = getSummaryStatistics(data);
         // Median line
         svg.append('line')
+            .attr("class", "mainScatterStatistics")
             .style("stroke", "#848484")
             .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
             // .attr("x1", -10)
@@ -693,6 +694,7 @@ function drawScatter() {
 
         // IQR box
         svg.append('rect')
+            .attr("class", "mainScatterStatistics")
             .style("stroke", "#848484")
             .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
             .style("fill", "transparent")
@@ -703,6 +705,7 @@ function drawScatter() {
         
         // Min and Max lines
         svg.append('line')
+            .attr("class", "mainScatterStatistics")
             .style("stroke", "#848484")
             .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
             .attr("x1", ctx.xScaleScatter(ctx.energyType[i]) + 5)
@@ -710,6 +713,7 @@ function drawScatter() {
             .attr("x2", ctx.xScaleScatter(ctx.energyType[i]) + ctx.xScaleScatter.bandwidth() - 5)
             .attr("y2", ctx.yScaleScatter(statistics.min));
         svg.append('line')
+            .attr("class", "mainScatterStatistics")
             .style("stroke", "#848484")
             .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
             .attr("x1", ctx.xScaleScatter(ctx.energyType[i]) + 5)
@@ -717,6 +721,7 @@ function drawScatter() {
             .attr("x2", ctx.xScaleScatter(ctx.energyType[i]) + ctx.xScaleScatter.bandwidth() - 5)
             .attr("y2", ctx.yScaleScatter(statistics.max));
         svg.append('line')
+            .attr("class", "mainScatterStatistics")
             .style("stroke", "#848484")
             .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
             .attr("x1", ctx.xScaleScatter(ctx.energyType[i]) + ctx.xScaleScatter.bandwidth()/2)
@@ -731,6 +736,7 @@ function drawScatter() {
         .enter()
         .append("g")
         .attr("transform", d => `translate(${ctx.xScaleScatter(d.key)},0)`)
+        .attr("class", "mainScatterStatistics")
         .append("path")
         .datum(d => d.value)
         .style("stroke", "none")
