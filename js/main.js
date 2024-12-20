@@ -468,7 +468,9 @@ function drawSankey() {
             }
         })
         .attr("stroke-opacity", 0.5)
-        .attr("stroke-width", d => Math.max(1, d.width));
+        .attr("stroke-width", d => Math.max(1, d.width))
+        .append("title") // Append a title to each link
+        .text(d => `${d.source.name} → ${extractRegion(d.target.name)}\nValue: ${d.value} GWh`);
 
     // Append nodes
     const NODES_WIDTH = 10;
@@ -553,7 +555,7 @@ function drawSankey() {
 
     // Adds a title on the nodes.
     node.append("title")
-        .text(d => `${d.name}\n${d.value} GWh`);
+        .text(d => `${extractRegion(d.name)}\n${d.value} GWh`);
 };
 
 function drawScatter() {
