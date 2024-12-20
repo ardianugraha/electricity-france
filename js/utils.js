@@ -98,6 +98,7 @@ function updateFilter(currentFilters) {
     // drawLineChart(currentFilters);
 
     if (ctx.currentFilters.region == "") {
+        // Sankey Plot
         d3.select("g.links")
             .selectAll("path")
             .transition()
@@ -111,7 +112,15 @@ function updateFilter(currentFilters) {
                     throw new Error(`${d.name} is not a valid region!`);
                 }
             });
+        
+        // Scatter Plot
+        d3.selectAll(`circle.site-point`)
+            .transition()
+            .duration(1000)
+            .attr("opacity", 0.6)
+            .attr("r", 1)
     } else {
+        // Sankey Plot
         d3.selectAll(`path.${normalizeRegion(ctx.currentFilters.region)}`)
             .transition()
             .duration(1000)
@@ -124,12 +133,25 @@ function updateFilter(currentFilters) {
                     throw new Error(`${d.name} is not a valid region!`);
                 }
             });
-    
+
         // Change stroke of all other paths
         d3.selectAll(`path:not(.${normalizeRegion(ctx.currentFilters.region)})`)
             .transition()
             .duration(1000)
             .attr("stroke", "gray");
+
+        // Scatter Plot
+        d3.selectAll(`circle.site-point.${normalizeRegion(ctx.currentFilters.region)}`)
+            .transition()
+            .duration(1000)
+            .attr("opacity", 0.6)
+            .attr("r", 1)
+
+        d3.selectAll(`circle.site-point:not(.${normalizeRegion(ctx.currentFilters.region)})`)
+            .transition()
+            .duration(1000)
+            .attr("opacity", 0)
+            .attr("r", 0)
     }
 };
 

@@ -648,7 +648,7 @@ function drawScatter() {
         .data(filteredSites)
         .enter()
         .append("circle")
-        .attr("class", "site-point")
+        .attr("class", d => `site-point ${normalizeRegion(d.region)}`)
         .attr("cx", d => xScale(d.energy_type) + xScale.bandwidth() / 2 + (Math.random() - 0.5) * xScale.bandwidth() * 0.5)
         .attr("cy", d => yScale(d.sum_max_power_installed))
         .attr("r", 1) // Fixed size
