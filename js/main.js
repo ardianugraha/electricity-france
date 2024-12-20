@@ -171,12 +171,10 @@ function loadData() {
 };
 
 function drawMap() {
-    //TODO
-    // draw France map with its regions
     ctx.LFmap = L.map('mapContainer', {
         minZoom: 6, // Minimum zoom level to avoid zooming too far out
         maxZoom: 10, // Maximum zoom level
-        maxBoundsViscosity: 1, // Ensures the map sticks within the bounds
+        maxBoundsViscosity: 1,
     });
 
     L.DomUtil.addClass(ctx.LFmap._container, 'crosshair-cursor-enabled');
@@ -188,7 +186,6 @@ function drawMap() {
 
     ctx.LFmap.setView([46.603354, 2.3], 6); // Center on France with a zoom level of 6
 
-    // ctx.clicked = false;
     const regionLayer = L.geoJson(ctx.mapRegions, {
         style: styleRegion,
         onEachFeature: function(feature, layer) {
@@ -842,8 +839,191 @@ function drawTreeMapProd(data, filters) {
     drawTreeMap(hierarchyData, elementId);
 };
 
-function drawLineChart(data, filter) {
+// function drawLineChart(data, filter) {
     
+//     const width = 600;
+//     const height = 400;
+//     const marginTop = 20;
+//     const marginRight = 20;
+//     const marginBottom = 50;
+//     const marginLeft = 30;
+
+//     // Create the positional scales.
+//     const x = d3.scaleLinear()
+//         .domain(d3.extent(data, d => d.year))
+//         .range([marginLeft, width - marginRight]);
+
+//     const y = d3.scaleLinear()
+//         .domain([0, d3.max(data, d => d.totalGWh)]).nice()
+//         .range([height - marginBottom, marginTop]);
+
+//     const svg = d3.select("#lineChart")
+//         .append("svg")
+//         .attr("width", width)
+//         .attr("height", height)
+//         .attr("viewBox", [0, 0, width, height])
+//         .attr("style", "overflow: visible; font: 10px sans-serif;");      
+    
+//     // Add the horizontal axis.
+//     svg.append("g")
+//         .attr("transform", `translate(0,${height - marginBottom})`)
+//         .call(d3.axisBottom(x).ticks(width / 40).tickSizeOuter(0))
+//         .append("text")
+//             .attr("x", (width - marginLeft - marginRight) / 2 + marginLeft)
+//             .attr("y", 30) // Position the title below the axis
+//             .attr("fill", "currentColor")
+//             .attr("text-anchor", "middle")
+//             .text("Year");
+
+//     // Add the vertical axis.
+//     svg.append("g")
+//         .attr("transform", `translate(${marginLeft},0)`)
+//         .call(d3.axisLeft(y))
+//         .call(g => g.select(".domain").remove())
+//         .call(g => g.selectAll(".tick line").clone()
+//             .attr("x2", width - marginLeft - marginRight)
+//             .attr("stroke-opacity", 0.1))
+//         .call(g => g.append("text")
+//             .attr("x", -marginLeft)
+//             .attr("y", 10)
+//             .attr("fill", "currentColor")
+//             .attr("text-anchor", "start")
+//             .text("↑ Total Production (GWh)"));
+
+//     data.sort((a, b) => d3.ascending(a.year, b.year));
+//     // Process the data to create stacks
+//     const stack = d3.stack()
+//         .keys(["nuclearGWh", "nonRenewableGWh", "hydroGWh", "windGWh", "solarGWh", "bioenergyGWh"])
+//         .value((d, key) => Math.max(d[key], 1)) // Replace 0 or negative values with 1
+//         .order(d3.stackOrderNone)
+//         .offset(d3.stackOffsetNone);
+
+//     const color = d3.scaleOrdinal()
+//         .domain(["nuclearGWh", "nonRenewableGWh", "hydroGWh", "windGWh", "solarGWh", "bioenergyGWh"])
+//         .range(["#D32F2F", "black", "#4682B4", "#87CEEB", "#e8c33c", "#6B3F2A"]);
+    
+//     const area = d3.area()
+//         .x(d => x(d.data.year))  // x-coordinate from the points
+//         .y0(d => y(d[0]))        // bottom of the area (baseline)
+//         .y1(d => y(d[1]));       // y-coordinate (heig
+
+//     // Prepare the data for each region.
+//     const regions = d3.group(data, d => d.regionName);
+
+//     // Add stacked areas for all regions (but hidden initially)
+//     const areaPaths = svg.selectAll(".area")
+//         .data(regions)
+//         .join("g")
+//         .attr("class", "region-area")
+//         .style("visibility", "hidden")  // Hide areas initially
+//         .selectAll("path")
+//         .data(d => stack(d[1])) // Create stacks for each region's data
+//         .join("path")
+//         .attr("class", "area")
+//         .attr("d", area)
+//         .attr("fill", d => color(d.key))
+//         .attr("opacity", 0.7);
+
+//     // Compute the points in pixel space as [x, y, z], where z is the name of the series.
+//     const points = data.map((d) => [x(d.year), y(d.totalGWh), d.regionName, d.totalGWh, d.year]);
+
+//     // Group the points by series.
+//     const groups = d3.rollup(points, v => Object.assign(v, {z: v[0][2]}), d => d[2]);
+
+//     // Draw the lines.
+//     const line = d3.line();
+
+//     const path = svg.append("g")
+//         .attr("fill", "none")
+//         .attr("stroke", "steelblue")
+//         .attr("stroke-width", 1.5)
+//         .attr("stroke-linejoin", "round")
+//         .attr("stroke-linecap", "round")
+//         .selectAll("path")
+//         .data(groups.values())
+//         .join("path")
+//         .style("mix-blend-mode", "multiply")
+//         .attr("d", line);
+
+//  // Add region labels (names)
+//     const labels = svg.selectAll(".region-label")
+//         .data(groups.values())
+//         .join("text")
+//         .attr("class", "region-label")
+//         .attr("x", d => d[d.length - 1][0]) // Position the label at the end of the line
+//         .attr("y", d => d[d.length - 1][1]) // Position based on the last point's y-value
+//         .attr("dx", 5)  
+//         .attr("fill", "black")
+//         .attr("text-anchor", "start")
+//         .style("font-size", "10px")
+//         .text(d => d[0][2]); // Region name from the data
+    
+//     // Add an invisible layer for the interactive tip.
+//     const dot = svg.append("g")
+//         .attr("display", "none");
+
+//     dot.append("circle")
+//         .attr("r", 2.5);
+
+//     dot.append("text")
+//         .attr("text-anchor", "middle")
+//         .attr("y", -8);
+
+//     svg
+//         .on("pointerenter", pointerentered)
+//         .on("pointermove", pointermoved)
+//         .on("pointerleave", pointerleft)
+//         .on("touchstart", event => event.preventDefault());
+    
+//         // Color legend
+//     // const legend = svg.append("g")
+//     //     .attr("transform", `translate(${width - marginRight + 10}, 20)`); // Adjust position for legend
+
+//     // const legendItem = legend.selectAll(".legend-item")
+//     //     .data(color.domain())
+//     //     .join("g")
+//     //     .attr("class", "legend-item")
+//     //     .attr("transform", (d, i) => `translate(0, ${i * 20})`);
+
+//     // legendItem.append("rect")
+//     //     .attr("width", 18)
+//     //     .attr("height", 18)
+//     //     .attr("fill", color)
+//     //     .attr("opacity", 0.7);
+
+//     // legendItem.append("text")
+//     //     .attr("x", 24)
+//     //     .attr("y", 9)
+//     //     .attr("dy", "0.35em")
+//     //     .text(d => d.charAt(0).toUpperCase() + d.slice(1));  // Capitalize the first letter of the energy type
+
+//     // return svg.node();
+
+//     function pointermoved(event) {
+//         const [xm, ym] = d3.pointer(event);
+//         const i = d3.leastIndex(points, ([x, y]) => Math.hypot(x - xm, y - ym));
+//         const [x, y, regionName, totalGWh, year] = points[i];
+        
+//         areaPaths.style("visibility", d => (d[0].data.regionName === regionName ? "visible" : "hidden"));
+        
+//         path.style("stroke", ({z}) => z === regionName ? null : "#ddd").filter(({z}) => z === regionName).raise();
+//         dot.attr("transform", `translate(${x},${y})`);
+//         dot.select("text").text(`${regionName}: ${totalGWh.toFixed(2)} GWh (${year})`);    
+//     }
+
+//     function pointerentered() {
+//         path.style("mix-blend-mode", null).style("stroke", "#ddd").style("opacity", 0.5);
+//         dot.attr("display", null);
+//     }
+
+//     function pointerleft() {
+//         path.style("mix-blend-mode", "multiply").style("stroke", null).style("opacity", 1);
+//         dot.attr("display", "none");
+//         areaPaths.style("visibility", "hidden");
+//     }
+// }
+
+function drawLineChart(data, filter) {
     const width = 600;
     const height = 400;
     const marginTop = 20;
@@ -856,8 +1036,8 @@ function drawLineChart(data, filter) {
         .domain(d3.extent(data, d => d.year))
         .range([marginLeft, width - marginRight]);
 
-    const y = d3.scaleLinear()
-        .domain([0, d3.max(data, d => d.totalGWh)]).nice()
+    const y = d3.scaleLog()
+        .domain([1000, d3.max(data, d => d.totalGWh)]).nice()
         .range([height - marginBottom, marginTop]);
 
     const svg = d3.select("#lineChart")
@@ -881,7 +1061,10 @@ function drawLineChart(data, filter) {
     // Add the vertical axis.
     svg.append("g")
         .attr("transform", `translate(${marginLeft},0)`)
-        .call(d3.axisLeft(y))
+        // .call(d3.axisLeft(y)
+        //     .tickValues([1000, 10000, 100000, 200000]) // Explicitly set tick values
+        //     .tickFormat(d3.format(",.1s"))) 
+        .call(d3.axisLeft(y).ticks(10, ",.1s"))
         .call(g => g.select(".domain").remove())
         .call(g => g.selectAll(".tick line").clone()
             .attr("x2", width - marginLeft - marginRight)
@@ -907,8 +1090,8 @@ function drawLineChart(data, filter) {
     
     const area = d3.area()
         .x(d => x(d.data.year))  // x-coordinate from the points
-        .y0(d => y(d[0]))        // bottom of the area (baseline)
-        .y1(d => y(d[1]));       // y-coordinate (heig
+        .y0(d => y(Math.max(d[0], 1000)))        // bottom of the area (baseline)
+        .y1(d => y(Math.max(d[1], 1000)));       // y-coordinate (height)
 
     // Prepare the data for each region.
     const regions = d3.group(data, d => d.regionName);
@@ -948,7 +1131,7 @@ function drawLineChart(data, filter) {
         .style("mix-blend-mode", "multiply")
         .attr("d", line);
 
- // Add region labels (names)
+    // Add region labels (names)
     const labels = svg.selectAll(".region-label")
         .data(groups.values())
         .join("text")
@@ -959,7 +1142,39 @@ function drawLineChart(data, filter) {
         .attr("fill", "black")
         .attr("text-anchor", "start")
         .style("font-size", "10px")
-        .text(d => d[0][2]); // Region name from the data
+        .text(d => d[0][2]); // Region name from the data   
+
+    // Function to adjust label positions to avoid overlap
+    function adjustLabelPositions(labels) {
+        const spacing = 12; // Minimum spacing between labels
+        const labelData = [];
+
+        // Collect label data
+        labels.each(function() {
+            const label = d3.select(this);
+            labelData.push({
+                label: label,
+                y: +label.attr("y")
+            });
+        });
+
+        // Sort labels by y-coordinate
+        labelData.sort((a, b) => a.y - b.y);
+
+        // Adjust label positions
+        for (let i = 1; i < labelData.length; i++) {
+            const current = labelData[i];
+            const previous = labelData[i - 1];
+
+            if (current.y - previous.y < spacing) {
+                current.y = previous.y + spacing;
+                current.label.attr("y", current.y);
+            }
+        }
+    }
+
+    // Adjust label positions after rendering
+    adjustLabelPositions(labels);
     
     // Add an invisible layer for the interactive tip.
     const dot = svg.append("g")
@@ -977,30 +1192,7 @@ function drawLineChart(data, filter) {
         .on("pointermove", pointermoved)
         .on("pointerleave", pointerleft)
         .on("touchstart", event => event.preventDefault());
-        // Color legend
-    // const legend = svg.append("g")
-    //     .attr("transform", `translate(${width - marginRight + 10}, 20)`); // Adjust position for legend
-
-    // const legendItem = legend.selectAll(".legend-item")
-    //     .data(color.domain())
-    //     .join("g")
-    //     .attr("class", "legend-item")
-    //     .attr("transform", (d, i) => `translate(0, ${i * 20})`);
-
-    // legendItem.append("rect")
-    //     .attr("width", 18)
-    //     .attr("height", 18)
-    //     .attr("fill", color)
-    //     .attr("opacity", 0.7);
-
-    // legendItem.append("text")
-    //     .attr("x", 24)
-    //     .attr("y", 9)
-    //     .attr("dy", "0.35em")
-    //     .text(d => d.charAt(0).toUpperCase() + d.slice(1));  // Capitalize the first letter of the energy type
-
-    // return svg.node();
-
+    
     function pointermoved(event) {
         const [xm, ym] = d3.pointer(event);
         const i = d3.leastIndex(points, ([x, y]) => Math.hypot(x - xm, y - ym));
@@ -1023,4 +1215,4 @@ function drawLineChart(data, filter) {
         dot.attr("display", "none");
         areaPaths.style("visibility", "hidden");
     }
-};
+}
