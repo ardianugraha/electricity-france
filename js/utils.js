@@ -473,22 +473,23 @@ function drawScatterStatistics(selectedRegion) {
 
     svg = d3.select("div#scatterPlot").select("svg").select("g")
 
-    if (selectedRegion == "") {
-        d3.selectAll(".selectedRegionStatistics")
-            .transition()
-            .duration(500)
-            .style("opacity", 0)
-            .remove();
+    d3.selectAll(".selectedRegionStatistics")
+        .transition()
+        .duration(500)
+        .style("opacity", 0)
+        .remove();
 
-    } else {
+    if (selectedRegion != "") {
         // Prepare data
         const filteredSites = ctx.sitesMap.filter(site =>
+            site.sum_max_power_installed >= ctx.currentFilters.minPower &&
+            site.sum_max_power_installed <= ctx.currentFilters.maxPower &&
             site.long && site.lat && site.sum_max_power_installed > 1 && site.region==selectedRegion
         );
-    
+
         // X-axis: Energy Type (categorical)
         const energyTypes = [...new Set(filteredSites.map(d => d.energy_type))];
-    
+
         var sumstat = Array.from(
             d3.group(filteredSites, d => d.energy_type),
             ([key, values]) => {
