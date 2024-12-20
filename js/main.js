@@ -735,7 +735,7 @@ function drawScatter() {
         .datum(d => d.value)
         .style("stroke", "none")
         // .style("fill", d => ctx.colorMapping[sumstat.find(s => s.value === d).key])
-        .style("fill", d => "black")
+        .style("fill", d => "gray")
         .style("opacity", 0.4)
         .attr("d", (d, i, nodes) => {
             const energyType = sumstat[i].key;
