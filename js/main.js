@@ -582,13 +582,13 @@ function drawScatter() {
 
     // X-axis: Energy Type (categorical)
     const energyTypes = [...new Set(filteredSites.map(d => d.energy_type))];
-    const xScale = d3.scaleBand()
+    ctx.xScaleScatter = d3.scaleBand()
         .domain(energyTypes)
         .range([0, width])
         .padding(0.1);
 
     // Y-axis: Installed Power (logarithmic)
-    const yScale = d3.scaleLog()
+    ctx.yScaleScatter = d3.scaleLog()
         .domain([1, d3.max(filteredSites, d => d.sum_max_power_installed)]) // Minimum value set to 1 for log scale
         .range([height, 0])
         .nice();
@@ -615,7 +615,7 @@ function drawScatter() {
         max = d3.max(lengths)
         violinxScales.push(
             d3.scaleLinear()
-            .range([0, xScale.bandwidth()])
+            .range([0, ctx.xScaleScatter.bandwidth()])
             .domain([-max,max])
         );
     }
@@ -628,14 +628,14 @@ function drawScatter() {
     // Add X-axis (Energy Type)
     svg.append("g")
         .attr("transform", `translate(0,${height})`)
-        .call(d3.axisBottom(xScale))
+        .call(d3.axisBottom(ctx.xScaleScatter))
         .selectAll("text")
         .attr("transform", "rotate(-45)")
         .style("text-anchor", "end");
 
     // Add Y-axis (Installed Power)
     svg.append("g")
-        .call(d3.axisLeft(yScale).ticks(10, "~s")) // Logarithmic ticks
+        .call(d3.axisLeft(ctx.yScaleScatter).ticks(10, "~s")) // Logarithmic ticks
         .append("text")
         .attr("transform", "rotate(-90)")
         .attr("y", -40)
@@ -649,8 +649,8 @@ function drawScatter() {
         .enter()
         .append("circle")
         .attr("class", d => `site-point ${normalizeRegion(d.region)}`)
-        .attr("cx", d => xScale(d.energy_type) + xScale.bandwidth() / 2 + (Math.random() - 0.5) * xScale.bandwidth() * 0.5)
-        .attr("cy", d => yScale(d.sum_max_power_installed))
+        .attr("cx", d => ctx.xScaleScatter(d.energy_type) + ctx.xScaleScatter.bandwidth() / 2 + (Math.random() - 0.5) * ctx.xScaleScatter.bandwidth() * 0.5)
+        .attr("cy", d => ctx.yScaleScatter(d.sum_max_power_installed))
         .attr("r", 1) // Fixed size
         .attr("fill", d => ctx.colorMapping[d.energy_type])
         .attr("opacity", 0.7)
@@ -686,43 +686,43 @@ function drawScatter() {
             .style("stroke", "#848484")
             .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
             // .attr("x1", -10)
-            .attr("x1", xScale(ctx.energyType[i]))
-            .attr("y1", yScale(statistics.median))
-            .attr("x2", xScale(ctx.energyType[i]) + xScale.bandwidth())
-            .attr("y2", yScale(statistics.median));
+            .attr("x1", ctx.xScaleScatter(ctx.energyType[i]))
+            .attr("y1", ctx.yScaleScatter(statistics.median))
+            .attr("x2", ctx.xScaleScatter(ctx.energyType[i]) + ctx.xScaleScatter.bandwidth())
+            .attr("y2", ctx.yScaleScatter(statistics.median));
 
         // IQR box
         svg.append('rect')
             .style("stroke", "#848484")
             .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
             .style("fill", "transparent")
-            .attr("x", xScale(ctx.energyType[i]))
-            .attr("y", yScale(statistics.q3))
-            .attr("width", xScale.bandwidth())
-            .attr("height", Math.abs(yScale(statistics.q1)-yScale(statistics.q3)));
+            .attr("x", ctx.xScaleScatter(ctx.energyType[i]))
+            .attr("y", ctx.yScaleScatter(statistics.q3))
+            .attr("width", ctx.xScaleScatter.bandwidth())
+            .attr("height", Math.abs(ctx.yScaleScatter(statistics.q1)-ctx.yScaleScatter(statistics.q3)));
         
         // Min and Max lines
         svg.append('line')
             .style("stroke", "#848484")
             .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
-            .attr("x1", xScale(ctx.energyType[i]) + 5)
-            .attr("y1", yScale(statistics.min))
-            .attr("x2", xScale(ctx.energyType[i]) + xScale.bandwidth() - 5)
-            .attr("y2", yScale(statistics.min));
+            .attr("x1", ctx.xScaleScatter(ctx.energyType[i]) + 5)
+            .attr("y1", ctx.yScaleScatter(statistics.min))
+            .attr("x2", ctx.xScaleScatter(ctx.energyType[i]) + ctx.xScaleScatter.bandwidth() - 5)
+            .attr("y2", ctx.yScaleScatter(statistics.min));
         svg.append('line')
             .style("stroke", "#848484")
             .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
-            .attr("x1", xScale(ctx.energyType[i]) + 5)
-            .attr("y1", yScale(statistics.max))
-            .attr("x2", xScale(ctx.energyType[i]) + xScale.bandwidth() - 5)
-            .attr("y2", yScale(statistics.max));
+            .attr("x1", ctx.xScaleScatter(ctx.energyType[i]) + 5)
+            .attr("y1", ctx.yScaleScatter(statistics.max))
+            .attr("x2", ctx.xScaleScatter(ctx.energyType[i]) + ctx.xScaleScatter.bandwidth() - 5)
+            .attr("y2", ctx.yScaleScatter(statistics.max));
         svg.append('line')
             .style("stroke", "#848484")
             .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
-            .attr("x1", xScale(ctx.energyType[i]) + xScale.bandwidth()/2)
-            .attr("y1", yScale(statistics.min))
-            .attr("x2", xScale(ctx.energyType[i]) + xScale.bandwidth()/2)
-            .attr("y2", yScale(statistics.max));
+            .attr("x1", ctx.xScaleScatter(ctx.energyType[i]) + ctx.xScaleScatter.bandwidth()/2)
+            .attr("y1", ctx.yScaleScatter(statistics.min))
+            .attr("x2", ctx.xScaleScatter(ctx.energyType[i]) + ctx.xScaleScatter.bandwidth()/2)
+            .attr("y2", ctx.yScaleScatter(statistics.max));
     }
     // TODO
     // Draw violin plots with individual scales
@@ -730,7 +730,7 @@ function drawScatter() {
         .data(sumstat)
         .enter()
         .append("g")
-        .attr("transform", d => `translate(${xScale(d.key)},0)`)
+        .attr("transform", d => `translate(${ctx.xScaleScatter(d.key)},0)`)
         .append("path")
         .datum(d => d.value)
         .style("stroke", "none")
@@ -743,7 +743,7 @@ function drawScatter() {
             return d3.area()
                 .x0(d => xScale(-d.length))
                 .x1(d => xScale(d.length))
-                .y(d => yScale(d.x0))
+                .y(d => ctx.yScaleScatter(d.x0))
                 .curve(d3.curveCatmullRom)(d);
         });
 }
