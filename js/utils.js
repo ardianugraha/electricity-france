@@ -5,7 +5,11 @@ function extractRegion(str) {
         return str.substring(str.indexOf("-") + 1);
     }
     return str;
-  }
+}
+
+function normalizeRegion(str) {
+    return str.replaceAll(" ", "_").replace("'", "");
+}
 
 const createFilter = (key, param, container) => {
     const filterButton = document.createElement("button");
@@ -101,6 +105,90 @@ function updateFilter(currentFilters) {
     drawTreeMapSite(ctx.sitesMap, currentFilters);
     drawTreeMapProd(ctx.prodRegion, currentFilters);
     // drawLineChart(currentFilters);
+
+    // Because the minimum value for logarithmic scale is 1
+    var scatterMinSitesPower =  (ctx.currentFilters.minPower < 1) ? 1 : ctx.currentFilters.minPower;
+
+    if (ctx.currentFilters.region == "") {
+        // Sankey Plot
+        d3.select("g.links")
+            .selectAll("path")
+            .transition()
+            .duration(1000)
+            .attr("stroke", function (d) {
+                if (d.source.name.includes("production")){
+                    return ctx.colorMapping[d.target.name];
+                } else if (d.target.name.includes("consumption")) {
+                    return ctx.colorMapping[d.source.name];
+                } else {
+                    throw new Error(`${d.name} is not a valid region!`);
+                }
+            });
+        
+        // Scatter Plot
+        d3.selectAll(`circle.site-point`)
+            .filter(function(d) {
+                // Check if the 'cy' value is within a certain range
+                return  d3.select(this).attr("cy") <= ctx.yScaleScatter(scatterMinSitesPower) &&
+                        d3.select(this).attr("cy") >= ctx.yScaleScatter(ctx.currentFilters.maxPower);
+            })
+            .transition()
+            .duration(1000)
+            .attr("opacity", 0.6)
+            .attr("r", 1)
+    } else {
+        // Sankey Plot
+        d3.selectAll(`path.${normalizeRegion(ctx.currentFilters.region)}`)
+            .transition()
+            .duration(1000)
+            .attr("stroke", function (d) {
+                if (d.source.name.includes("production")){
+                    return ctx.colorMapping[d.target.name];
+                } else if (d.target.name.includes("consumption")) {
+                    return ctx.colorMapping[d.source.name];
+                } else {
+                    throw new Error(`${d.name} is not a valid region!`);
+                }
+            });
+
+        // Change stroke of all other paths
+        d3.selectAll(`path:not(.${normalizeRegion(ctx.currentFilters.region)})`)
+            .transition()
+            .duration(1000)
+            .attr("stroke", "gray");
+
+        // Scatter Plot
+        d3.selectAll(`circle.site-point.${normalizeRegion(ctx.currentFilters.region)}`)
+            .filter(function(d) {
+                // Check if the 'cy' value is within a certain range
+                return  d3.select(this).attr("cy") <= ctx.yScaleScatter(scatterMinSitesPower) &&
+                        d3.select(this).attr("cy") >= ctx.yScaleScatter(ctx.currentFilters.maxPower);
+            })
+            .transition()
+            .duration(1000)
+            .attr("opacity", 0.6)
+            .attr("r", 1)
+
+        d3.selectAll(`circle.site-point:not(.${normalizeRegion(ctx.currentFilters.region)})`)
+            .transition()
+            .duration(1000)
+            .attr("opacity", 0)
+            .attr("r", 0)
+    }
+
+    // fade out points that are not in range
+    d3.selectAll(`circle.site-point`)
+        .filter(function(d) {
+            // Check if the 'cy' value is within a certain range
+            return  !(d3.select(this).attr("cy") <= ctx.yScaleScatter(scatterMinSitesPower) &&
+                    d3.select(this).attr("cy") >= ctx.yScaleScatter(ctx.currentFilters.maxPower));
+        })
+        .transition()
+        .duration(1000)
+        .attr("opacity", 0)
+        .attr("r", 0)
+
+    drawScatterStatistics(ctx.currentFilters.region)
 };
 
 function groupSitesByCommune(sites) {
@@ -389,4 +477,179 @@ function initializeRangeControls() {
     toSlider.oninput = () => controlToSlider(fromSlider, toSlider, toInput);
     fromInput.oninput = () => controlFromInput(fromSlider, fromInput, toInput, toSlider);
     toInput.oninput = () => controlToInput(toSlider, fromInput, toInput, toSlider);
+}
+
+function drawScatterStatistics(selectedRegion) {
+
+    svg = d3.select("div#scatterPlot").select("svg").select("g")
+
+    var isRangeChanged = false;
+    const [minCapacity, maxCapacity ] = d3.extent(ctx.sitesMap, d => d.sum_max_power_installed);
+    if (
+        (minCapacity==ctx.currentFilters.minPower) &&
+        (maxCapacity==ctx.currentFilters.maxPower)
+    ) {
+        isRangeChanged = false;
+    } else {
+        isRangeChanged = true;
+    }
+
+    d3.selectAll(".selectedRegionStatistics")
+        .transition()
+        .duration(500)
+        .style("opacity", 0)
+        .remove();
+
+    if ((selectedRegion != "") || (isRangeChanged)) {
+        d3.selectAll(".mainScatterStatistics")
+            .transition()
+            .duration(500)
+            .style("opacity", 0.2)
+
+        // Prepare data
+        const filteredSites = ctx.sitesMap.filter(site =>
+            site.sum_max_power_installed >= ctx.currentFilters.minPower &&
+            site.sum_max_power_installed <= ctx.currentFilters.maxPower &&
+            site.long && site.lat && site.sum_max_power_installed > 1 &&
+            // only check region if a region is selected
+            (selectedRegion=="" ? true : site.region==selectedRegion)
+        );
+
+        // X-axis: Energy Type (categorical)
+        const energyTypes = [...new Set(filteredSites.map(d => d.energy_type))];
+
+        var sumstat = Array.from(
+            d3.group(filteredSites, d => d.energy_type),
+            ([key, values]) => {
+                // Filter out zero or negative values
+                const validValues = values
+                    .map(d => d.sum_max_power_installed);
+                const histogramResult = logHistogram(validValues);
+                return {
+                    key: key,
+                    value: histogramResult
+                };
+            }
+        );
+    
+        // What is the biggest number of value in a bin? We need it cause this value will have a width of 100% of the bandwidth.
+        var violinxScales = []
+        for (i in sumstat){
+            allBins = sumstat[i].value
+            lengths = allBins.map(function(a){return a.length;})
+            max = d3.max(lengths)
+            violinxScales.push(
+                d3.scaleLinear()
+                .range([0, ctx.xScaleScatter.bandwidth()])
+                .domain([-max,max])
+            );
+        }
+    
+        // Draw box with transitions
+        for (let i = 0; i < energyTypes.length - 1; i++) {
+            let data = filteredSites.filter(function (d) { return d.energy_type == energyTypes[i] });
+            statistics = getSummaryStatistics(data);
+
+            // Median line with transition
+            svg.append('line')
+                .attr("class", "selectedRegionStatistics")
+                .style("stroke", d => ctx.colorMapping[energyTypes[i]])
+                .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
+                .attr("x1", ctx.xScaleScatter(energyTypes[i]))
+                .attr("y1", ctx.yScaleScatter(statistics.median))
+                .attr("x2", ctx.xScaleScatter(energyTypes[i]) + ctx.xScaleScatter.bandwidth())
+                .attr("y2", ctx.yScaleScatter(statistics.median))
+                .style("opacity", 0)  // Start with opacity 0 for fade-in
+                .transition()  // Apply transition
+                .duration(1000)  // Duration of 1 second
+                .style("opacity", 0.8);  // Fade-in effect
+
+            // IQR box with transition
+            svg.append('rect')
+                .attr("class", "selectedRegionStatistics")
+                .style("stroke", d => ctx.colorMapping[energyTypes[i]])
+                .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
+                .style("fill", "transparent")
+                .attr("x", ctx.xScaleScatter(energyTypes[i]))
+                .attr("y", ctx.yScaleScatter(statistics.q3))
+                .attr("width", ctx.xScaleScatter.bandwidth())
+                .attr("height", Math.abs(ctx.yScaleScatter(statistics.q1) - ctx.yScaleScatter(statistics.q3)))
+                .style("opacity", 0)  // Start with opacity 0 for fade-in
+                .transition()  // Apply transition
+                .duration(1000)  // Duration of 1 second
+                .style("opacity", 0.8);  // Fade-in effect
+
+            // Min and Max lines with transition
+            svg.append('line')
+                .attr("class", "selectedRegionStatistics")
+                .style("stroke", "#848484")
+                .style("stroke", d => ctx.colorMapping[energyTypes[i]])
+                .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
+                .attr("x1", ctx.xScaleScatter(energyTypes[i]) + 5)
+                .attr("y1", ctx.yScaleScatter(statistics.min))
+                .attr("x2", ctx.xScaleScatter(energyTypes[i]) + ctx.xScaleScatter.bandwidth() - 5)
+                .attr("y2", ctx.yScaleScatter(statistics.min))
+                .style("opacity", 0)  // Start with opacity 0 for fade-in
+                .transition()  // Apply transition
+                .duration(1000)  // Duration of 1 second
+                .style("opacity", 0.8);
+
+            svg.append('line')
+                .attr("class", "selectedRegionStatistics")
+                .style("stroke", d => ctx.colorMapping[energyTypes[i]])
+                .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
+                .attr("x1", ctx.xScaleScatter(energyTypes[i]) + 5)
+                .attr("y1", ctx.yScaleScatter(statistics.max))
+                .attr("x2", ctx.xScaleScatter(energyTypes[i]) + ctx.xScaleScatter.bandwidth() - 5)
+                .attr("y2", ctx.yScaleScatter(statistics.max))
+                .style("opacity", 0)  // Start with opacity 0 for fade-in
+                .transition()  // Apply transition
+                .duration(1000)  // Duration of 1 second
+                .style("opacity", 0.8);
+
+            svg.append('line')
+                .attr("class", "selectedRegionStatistics")
+                .style("stroke", d => ctx.colorMapping[energyTypes[i]])
+                .style("stroke-width", ctx.SCATTER_STROKE_WIDTH)
+                .attr("x1", ctx.xScaleScatter(energyTypes[i]) + ctx.xScaleScatter.bandwidth() / 2)
+                .attr("y1", ctx.yScaleScatter(statistics.min))
+                .attr("x2", ctx.xScaleScatter(energyTypes[i]) + ctx.xScaleScatter.bandwidth() / 2)
+                .attr("y2", ctx.yScaleScatter(statistics.max))
+                .style("opacity", 0)  // Start with opacity 0 for fade-in
+                .transition()  // Apply transition
+                .duration(1000)  // Duration of 1 second
+                .style("opacity", 0.8);
+        }
+
+        // Violin plot paths with transitions
+        svg.selectAll("myViolin")
+            .data(sumstat)
+            .enter()
+            .append("g")
+            .attr("class", "selectedRegionStatistics")
+            .attr("transform", d => `translate(${ctx.xScaleScatter(d.key)},0)`)
+            .append("path")
+            .datum(d => d.value)
+            .style("stroke", "none")
+            .style("fill", d => ctx.colorMapping[sumstat.find(s => s.value === d).key])
+            .style("opacity", 0)  // Start with opacity 0 for fade-in
+            .transition()  // Apply transition
+            .duration(1000)  // Duration of 1 second
+            .style("opacity", 0.2)  // Fade-in effect
+            .attr("d", (d, i, nodes) => {
+                const energyType = sumstat[i].key;
+                const xScale = violinxScales[energyTypes.indexOf(energyType)];
+                return d3.area()
+                    .x0(d => xScale(-d.length))
+                    .x1(d => xScale(d.length))
+                    .y(d => ctx.yScaleScatter(d.x0))
+                    .curve(d3.curveCatmullRom)(d);
+            });
+    } else {
+        d3.selectAll(".mainScatterStatistics")
+            .transition()
+            .duration(500)
+            .style("opacity", 1)
+    }
+    
 }
