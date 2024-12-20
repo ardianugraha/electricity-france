@@ -351,7 +351,7 @@ function drawSankey() {
     const productionByRegionAndType = {};
 
     ctx.prodRegion.forEach(prod => {
-        if (prod.year === 2020) {
+        if (prod.year === 2023) {
             regions.add("production-" + prod.regionName);
 
             for (const [key, value] of Object.entries(prod)) {
@@ -392,7 +392,7 @@ function drawSankey() {
     // TODO: Add a year selection field
     // Process consumption data to create links from energy types to consumption regions
     ctx.consRegionPart.forEach(cons => {
-        if (cons.year === 2020) {
+        if (cons.year === 2023) {
             regions.add("consumption-" + cons.regionName);
             if (cons.filiere_consGWh > 0) {
                 links.push({
